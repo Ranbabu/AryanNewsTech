@@ -13,7 +13,7 @@
             --card-bg: #ffffff;
             --primary: #d32f2f;
             --secondary: #f44336;
-            --shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            --shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
             --border: #e0e0e0;
         }
 
@@ -22,32 +22,98 @@
             --text-color: #e0e0e0;
             --card-bg: #1e1e1e;
             --primary: #ef5350;
-            --shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+            --shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
             --border: #333333;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s; }
-        body { background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; scroll-behavior: smooth; }
-        body.modal-open { overflow: hidden; }
+        
+        /* --- APP Layout (APK Style) --- */
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            line-height: 1.6; 
+            height: 100vh; /* Fixed height for app feel */
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; /* Hide main body scroll */
+        }
+        body.modal-open .app-body { overflow: hidden; }
 
-        /* --- Header --- */
-        header { background-color: var(--card-bg); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 1000; }
+        /* --- Header (Fixed Top) --- */
+        header { 
+            flex-shrink: 0;
+            background-color: var(--card-bg); 
+            padding: 15px 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08); 
+            z-index: 1000; 
+        }
         .logo { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
         .header-controls { display: flex; gap: 15px; align-items: center; }
         .icon-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-color); }
 
+        /* --- Middle Scrollable Area --- */
+        .app-body {
+            flex-grow: 1;
+            overflow-y: auto; /* Scroll only the middle content */
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll on mobile */
+            padding-bottom: 20px;
+        }
+
+        /* --- Footer (Fixed Bottom) --- */
+        footer {
+            flex-shrink: 0;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border);
+            padding: 12px;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 1000;
+        }
+
         /* --- Category Bar --- */
         .category-bar { display: flex; overflow-x: auto; white-space: nowrap; padding: 15px; background-color: var(--card-bg); border-bottom: 1px solid var(--border); gap: 10px; -ms-overflow-style: none; scrollbar-width: none; }
         .category-bar::-webkit-scrollbar { display: none; }
-        .cat-btn { padding: 8px 16px; background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 0.9rem; color: var(--text-color); font-weight: 500; transition: all 0.3s ease; }
+        .cat-btn { padding: 8px 16px; background-color: var(--bg-color); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 0.9rem; color: var(--text-color); font-weight: 500; transition: all 0.3s ease; text-align: center; }
         .cat-btn:hover, .cat-btn.active { background-color: var(--primary); color: #fff; border-color: var(--primary); }
         .cat-btn:disabled { opacity: 0.7; cursor: not-allowed; }
         .btn-green { background-color: #2e7d32; color: white; border-color: #2e7d32; }
         .btn-green:hover { background-color: #1b5e20; border-color: #1b5e20; }
 
-        /* --- Script Controls --- */
-        .script-controls-container { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 15px; background-color: var(--card-bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-        .script-dropdown { padding: 8px 15px; border-radius: 20px; border: 1px solid var(--border); background-color: var(--bg-color); color: var(--text-color); font-size: 0.9rem; font-weight: 500; outline: none; cursor: pointer; }
+        /* --- Compact Grid Controls (APK Style UI) --- */
+        .script-controls-container { 
+            padding: 15px; 
+            background-color: var(--card-bg); 
+            border-bottom: 1px solid var(--border); 
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .controls-grid .full-width { grid-column: 1 / -1; }
+        .script-dropdown { 
+            padding: 8px 10px; 
+            border-radius: 8px; 
+            border: 1px solid var(--border); 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            font-size: 0.85rem; 
+            font-weight: 500; 
+            outline: none; 
+            cursor: pointer; 
+            width: 100%;
+        }
 
         /* --- Sidebar for API Settings --- */
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; z-index: 2000; opacity: 0; transition: opacity 0.3s; }
@@ -64,18 +130,18 @@
         .delete-btn { flex: 1; background-color: var(--secondary); color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer; }
 
         /* --- Main Content & Grid --- */
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-        .card { background-color: var(--card-bg); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); transition: transform 0.3s ease; display: flex; flex-direction: column; }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px rgba(0,0,0,0.15); }
-        .card-img-wrapper { width: 100%; height: 200px; background-color: var(--border); position: relative; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 15px; }
+        .news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .card { background-color: var(--card-bg); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); transition: transform 0.3s ease; display: flex; flex-direction: column; border: 1px solid var(--border); }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+        .card-img-wrapper { width: 100%; height: 180px; background-color: var(--border); position: relative; }
         .card img { width: 100%; height: 100%; object-fit: cover; }
         .card-content { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; }
-        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .card-desc { font-size: 0.9rem; color: gray; margin-bottom: 15px; flex-grow: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .card-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .card-desc { font-size: 0.85rem; color: gray; margin-bottom: 15px; flex-grow: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
         .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
-        .date { font-size: 0.8rem; color: var(--primary); font-weight: 500; }
-        .read-more-btn { background: none; border: none; color: var(--primary); font-weight: 600; font-size: 0.9rem; cursor: pointer; padding: 5px 0; }
+        .date { font-size: 0.75rem; color: var(--primary); font-weight: 500; }
+        .read-more-btn { background: none; border: none; color: var(--primary); font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 5px 0; }
         .read-more-btn:hover { text-decoration: underline; }
 
         /* --- Modals --- */
@@ -85,37 +151,47 @@
         .modal-overlay.active .modal-content { transform: translateY(0); }
         .close-modal { position: absolute; top: 15px; right: 15px; background-color: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 35px; height: 35px; font-size: 1.2rem; cursor: pointer; z-index: 10; display: flex; justify-content: center; align-items: center; }
         .close-modal:hover { background-color: var(--primary); }
-        .modal-image { width: 100%; height: 300px; object-fit: cover; border-bottom: 1px solid var(--border); }
-        .modal-body { padding: 25px; }
-        .modal-title { font-size: 1.5rem; margin-bottom: 10px; color: var(--text-color); line-height: 1.4; }
-        .modal-date { font-size: 0.9rem; color: var(--primary); margin-bottom: 20px; display: block; font-weight: 500; }
-        .modal-text { font-size: 1.05rem; line-height: 1.8; color: var(--text-color); margin-bottom: 20px; }
+        .modal-image { width: 100%; height: 250px; object-fit: cover; border-bottom: 1px solid var(--border); }
+        .modal-body { padding: 20px; }
+        .modal-title { font-size: 1.3rem; margin-bottom: 10px; color: var(--text-color); line-height: 1.4; }
+        .modal-date { font-size: 0.85rem; color: var(--primary); margin-bottom: 20px; display: block; font-weight: 500; }
+        .modal-text { font-size: 1rem; line-height: 1.7; color: var(--text-color); margin-bottom: 20px; }
         .original-source-link { display: inline-block; margin-top: 15px; padding: 10px 20px; background-color: var(--primary); color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem; }
 
-        .script-block { background-color: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .script-block { background-color: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         .script-block h3 { margin-bottom: 10px; font-size: 1.1rem; color: var(--primary); }
-        .script-block p { font-size: 1rem; line-height: 1.6; margin-bottom: 15px; }
+        .script-block p { font-size: 0.95rem; line-height: 1.6; margin-bottom: 0; }
+        
+        .script-meta-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px dashed var(--border);
+        }
 
         .spinner-container { display: none; justify-content: center; align-items: center; height: 50vh; }
-        .spinner { width: 50px; height: 50px; border: 5px solid var(--border); border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .error-msg { text-align: center; padding: 40px; color: var(--secondary); font-size: 1.2rem; display: none; }
-        .scroll-top { position: fixed; bottom: 20px; right: 20px; background-color: var(--primary); color: #fff; width: 45px; height: 45px; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: none; z-index: 1000; }
+        .error-msg { text-align: center; padding: 40px; color: var(--secondary); font-size: 1.1rem; display: none; }
+        .scroll-top { position: fixed; bottom: 70px; right: 20px; background-color: var(--primary); color: #fff; width: 45px; height: 45px; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: none; z-index: 1000; }
 
         @media (max-width: 600px) {
             .news-grid { grid-template-columns: 1fr; }
             .modal-content { width: 100%; height: 100vh; max-height: 100vh; border-radius: 0; }
-            .modal-image { height: 250px; }
+            .modal-image { height: 220px; }
             .modal-overlay { align-items: flex-end; }
-            .script-controls-container { flex-direction: column; align-items: stretch; }
-            .script-dropdown, .cat-btn { width: 100%; text-align: center; margin-bottom: 5px; }
             .settings-sidebar { width: 280px; right: -280px; }
+            .script-meta-bar { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .script-meta-bar button { width: 100%; }
         }
     </style>
 </head>
 <body>
 
+    <!-- Fixed Header -->
     <header>
         <div class="logo">Aryan News Tech</div>
         <div class="header-controls">
@@ -134,10 +210,10 @@
         <div class="sidebar-content">
             <div class="form-group">
                 <label>कौन सी News API इस्तेमाल करनी है?</label>
-                <select id="apiSelector" class="script-dropdown" style="width: 100%; margin-bottom: 15px;" onchange="saveApiChoice()">
+                <select id="apiSelector" class="script-dropdown" style="margin-bottom: 15px;" onchange="saveApiChoice()">
                     <option value="gnews">GNews API</option>
                     <option value="currents">Currents API (1000/Day)</option>
-                    <option value="rss">Google News RSS (Free & Live)</option>
+                    <option value="rss">Google News RSS (Free)</option>
                 </select>
             </div>
             
@@ -161,7 +237,6 @@
 
             <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border);">
 
-            <!-- AI API SETTING -->
             <div class="form-group">
                 <label style="color: var(--primary);">Groq AI Key (ऑटो स्क्रिप्ट के लिए)</label>
                 <input type="password" id="groqKeyInput" placeholder="gsk_••••••••••••••••">
@@ -173,55 +248,62 @@
                     *AI द्वारा बेहतरीन स्क्रिप्ट लिखवाने के लिए <a href="https://console.groq.com/keys" target="_blank" style="color: var(--primary);">यहाँ से Free Groq Key</a> प्राप्त करें।
                 </p>
             </div>
-            <p style="font-size: 0.8rem; color: gray; margin-top: 20px;">
-                *कोई बदलाव करने के बाद पेज ऑटोमैटिक रिफ्रेश होगा।
-            </p>
+            <p style="font-size: 0.8rem; color: gray; margin-top: 20px;">*कोई बदलाव करने के बाद पेज ऑटोमैटिक रिफ्रेश होगा।</p>
         </div>
     </div>
 
-    <div class="category-bar" id="categoryBar">
-        <button class="cat-btn active" data-cat="general">ताज़ा ख़बरें</button>
-        <button class="cat-btn" data-cat="nation">राष्ट्रीय</button>
-        <button class="cat-btn" data-cat="world">अंतरराष्ट्रीय</button>
-        <button class="cat-btn" data-cat="technology">टेक्नोलॉजी</button>
-        <button class="cat-btn" data-cat="entertainment">मनोरंजन</button>
-        <button class="cat-btn" data-cat="sports">खेल</button>
-    </div>
-
-    <!-- Enhanced Script Controls -->
-    <div class="script-controls-container">
-        <!-- Mode Selector -->
-        <select id="aiModeSelector" class="script-dropdown">
-            <option value="ai">AI द्वारा स्क्रिप्ट</option>
-            <option value="original">बिना AI (ओरिजिनल न्यूज़)</option>
-        </select>
+    <!-- Scrollable App Body -->
+    <main class="app-body" id="appBody">
         
-        <!-- Parts Selector -->
-        <select id="newsCountDropdown" class="script-dropdown">
-            <option value="5">Top 5 News</option>
-            <option value="10">Top 10 News</option>
-            <option value="25">Top 25 News</option>
-        </select>
-
-        <!-- Lines Selector -->
-        <select id="scriptLinesDropdown" class="script-dropdown">
-            <option value="5">5 लाइनें (प्रति खबर)</option>
-            <option value="10">10 लाइनें (प्रति खबर)</option>
-        </select>
-
-        <button id="generateScriptBtn" class="cat-btn active">ऑटो न्यूज़ स्क्रिप्ट बनाएं</button>
-        <button id="openManualModalBtn" class="cat-btn btn-green">मैन्युअल स्क्रिप्ट बनाएं</button>
-    </div>
-
-    <div class="container">
-        <div class="spinner-container" id="spinner">
-            <div class="spinner"></div>
+        <div class="category-bar" id="categoryBar">
+            <button class="cat-btn active" data-cat="general">ताज़ा ख़बरें</button>
+            <button class="cat-btn" data-cat="nation">राष्ट्रीय</button>
+            <button class="cat-btn" data-cat="world">अंतरराष्ट्रीय</button>
+            <button class="cat-btn" data-cat="technology">टेक्नोलॉजी</button>
+            <button class="cat-btn" data-cat="entertainment">मनोरंजन</button>
+            <button class="cat-btn" data-cat="sports">खेल</button>
         </div>
-        <div class="error-msg" id="errorMsg">
-            ⚠️ कनेक्शन में समस्या है या API Key गलत है।
+
+        <!-- Enhanced & Compact Script Controls (Grid Layout) -->
+        <div class="script-controls-container">
+            <div class="controls-grid">
+                <select id="aiModeSelector" class="script-dropdown">
+                    <option value="ai">AI द्वारा स्क्रिप्ट</option>
+                    <option value="original">बिना AI (ओरिजिनल)</option>
+                </select>
+                
+                <select id="newsCountDropdown" class="script-dropdown">
+                    <option value="5">Top 5 News</option>
+                    <option value="10">Top 10 News</option>
+                    <option value="25">Top 25 News</option>
+                </select>
+
+                <select id="scriptLinesDropdown" class="script-dropdown full-width">
+                    <option value="5">5 लाइनें (प्रति खबर)</option>
+                    <option value="10">10 लाइनें (प्रति खबर)</option>
+                </select>
+
+                <button id="generateScriptBtn" class="cat-btn active">ऑटो न्यूज़ बनाएं</button>
+                <button id="openManualModalBtn" class="cat-btn btn-green">मैन्युअल स्क्रिप्ट</button>
+            </div>
         </div>
-        <div class="news-grid" id="newsGrid"></div>
-    </div>
+
+        <div class="container">
+            <div class="spinner-container" id="spinner">
+                <div class="spinner"></div>
+            </div>
+            <div class="error-msg" id="errorMsg">
+                ⚠️ कनेक्शन में समस्या है या API Key गलत है।
+            </div>
+            <div class="news-grid" id="newsGrid"></div>
+        </div>
+
+    </main> <!-- End App Body -->
+
+    <!-- Fixed Footer -->
+    <footer>
+        Aryan News Tech &copy; 2026 | ताज़ा समाचार
+    </footer>
 
     <!-- Article Modal -->
     <div class="modal-overlay" id="articleModal">
@@ -255,14 +337,14 @@
             <button class="close-modal" id="closeManualModalBtn">&times;</button>
             <div class="modal-body">
                 <h1 class="modal-title" style="margin-bottom: 20px; color: var(--primary);">मैन्युअल टॉपिक से स्क्रिप्ट बनाएं</h1>
-                <p style="margin-bottom: 15px; font-size: 0.9rem;">यहाँ अपना कोई भी टॉपिक, न्यूज़ या हेडलाइन पेस्ट करें। AI इस पर एक विस्तृत (लगभग 2000 शब्दों की) स्क्रिप्ट तैयार करेगा, जिसे आपके द्वारा चुने गए भागों में बांटा जाएगा।</p>
+                <p style="margin-bottom: 15px; font-size: 0.9rem;">यहाँ अपना कोई भी टॉपिक, न्यूज़ या हेडलाइन पेस्ट करें। AI इस पर एक विस्तृत स्क्रिप्ट तैयार करेगा।</p>
                 <div class="form-group">
                     <textarea id="manualTopicInput" rows="8" placeholder="यहाँ अपनी खबर या टॉपिक लिखें..."></textarea>
                 </div>
-                <button id="generateManualScriptBtn" class="cat-btn active" style="width: 100%; font-size: 1rem; padding: 10px;">विस्तृत स्क्रिप्ट तैयार करें</button>
+                <button id="generateManualScriptBtn" class="cat-btn active" style="width: 100%; font-size: 1rem; padding: 10px;">स्क्रिप्ट तैयार करें</button>
                 <div id="manualLoadingText" style="text-align: center; margin-top: 15px; display: none; color: var(--primary); font-weight: bold;">
                     <div class="spinner" style="width: 30px; height: 30px; border-width: 3px; margin: 0 auto 10px auto;"></div>
-                    AI स्क्रिप्ट लिख रहा है... कृपया प्रतीक्षा करें (इसमें 10-15 सेकंड लग सकते हैं)...
+                    AI स्क्रिप्ट लिख रहा है... कृपया प्रतीक्षा करें...
                 </div>
             </div>
         </div>
@@ -485,7 +567,7 @@
                         model: "llama-3.1-8b-instant",
                         messages: [ { role: "system", content: systemPrompt }, { role: "user", content: userPrompt } ],
                         temperature: 0.6,
-                        response_format: { type: "json_object" } // Enforcing JSON output
+                        response_format: { type: "json_object" } 
                     })
                 });
                 if(!response.ok) throw new Error(`HTTP Error ${response.status}`);
@@ -538,7 +620,7 @@
             const btn = this; const originalText = btn.textContent;
             const countToGenerate = parseInt(document.getElementById('newsCountDropdown').value);
             const linesCount = parseInt(document.getElementById('scriptLinesDropdown').value);
-            const aiMode = document.getElementById('aiModeSelector').value; // 'ai' or 'original'
+            const aiMode = document.getElementById('aiModeSelector').value; 
 
             let articlesToProcess = [...currentArticlesData];
 
@@ -559,7 +641,7 @@
 
             let generatedNewsData = [];
 
-            // Bypass AI (Original Text Mode)
+            // Bypass AI Mode
             if(aiMode === 'original' || !groqKey) {
                 document.getElementById('aiLoadingText').textContent = "ओरिजिनल न्यूज़ लोड की जा रही है...";
                 const dateString = new Date().toLocaleDateString('hi-IN', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -601,14 +683,14 @@
                     generatedNewsData.push({ headline: cleanTitle, script: textContent }); // Fallback
                 }
                 
-                if (i < articlesToProcess.length - 1) await new Promise(resolve => setTimeout(resolve, 2000)); // Rate Limit Delay
+                if (i < articlesToProcess.length - 1) await new Promise(resolve => setTimeout(resolve, 2000)); 
             }
 
             renderScriptModal(generatedNewsData);
             btn.textContent = originalText; btn.disabled = false;
         });
 
-        // --- Render Script UI Helper ---
+        // --- Render Script UI Helper with Text Count Display ---
         function renderScriptModal(newsArray) {
             let scriptHTML = '';
             let fullScriptTextToCopy = '';
@@ -616,11 +698,23 @@
             newsArray.forEach((item, index) => {
                 const headlineText = `${index + 1}. ${item.headline}`;
                 const singleScriptText = `${headlineText}\n\n${item.script}`;
+                
+                // Calculate Word and Character Count
+                const charCount = item.script.length;
+                const wordCount = item.script.split(/\s+/).filter(w => w.length > 0).length;
+
                 scriptHTML += `
                     <div class="script-block">
                         <h3>${headlineText}</h3>
                         <p id="script-para-${index}">${item.script}</p>
-                        <button class="cat-btn" onclick="copySingleScript(${index})">इसे कॉपी करें</button>
+                        
+                        <div class="script-meta-bar">
+                            <span style="font-size: 0.85rem; color: var(--text-color); font-weight: 600;">
+                                📊 शब्द: <span style="color:var(--primary)">${wordCount}</span> | अक्षर: <span style="color:var(--primary)">${charCount}</span>
+                            </span>
+                            <button class="cat-btn" onclick="copySingleScript(${index})" style="margin:0; padding: 6px 15px;">इसे कॉपी करें</button>
+                        </div>
+
                         <textarea id="hidden-script-${index}" style="display:none;">${singleScriptText}</textarea>
                     </div>
                 `;
@@ -656,8 +750,10 @@
             });
         });
 
-        window.onscroll = () => { document.getElementById('scrollTopBtn').style.display = (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) ? "flex" : "none"; };
-        document.getElementById('scrollTopBtn').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        // App Body scroll controls top button
+        const appBody = document.getElementById('appBody');
+        appBody.addEventListener('scroll', () => { document.getElementById('scrollTopBtn').style.display = (appBody.scrollTop > 300) ? "flex" : "none"; });
+        document.getElementById('scrollTopBtn').addEventListener('click', () => appBody.scrollTo({ top: 0, behavior: 'smooth' }));
 
         fetchNews();
     </script>
