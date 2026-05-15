@@ -33,10 +33,10 @@
             background-color: var(--bg-color); 
             color: var(--text-color); 
             line-height: 1.6; 
-            height: 100vh; /* Fixed height for app feel */
+            height: 100vh; 
             display: flex; 
             flex-direction: column; 
-            overflow: hidden; /* Hide main body scroll */
+            overflow: hidden; 
         }
         body.modal-open .app-body { overflow: hidden; }
 
@@ -58,9 +58,9 @@
         /* --- Middle Scrollable Area --- */
         .app-body {
             flex-grow: 1;
-            overflow-y: auto; /* Scroll only the middle content */
+            overflow-y: auto; 
             scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch; /* Smooth scroll on mobile */
+            -webkit-overflow-scrolling: touch; 
             padding-bottom: 20px;
         }
 
@@ -87,7 +87,7 @@
         .btn-green { background-color: #2e7d32; color: white; border-color: #2e7d32; }
         .btn-green:hover { background-color: #1b5e20; border-color: #1b5e20; }
 
-        /* --- Compact Grid Controls (APK Style UI) --- */
+        /* --- Compact Grid Controls --- */
         .script-controls-container { 
             padding: 15px; 
             background-color: var(--card-bg); 
@@ -144,32 +144,79 @@
         .read-more-btn { background: none; border: none; color: var(--primary); font-weight: 600; font-size: 0.85rem; cursor: pointer; padding: 5px 0; }
         .read-more-btn:hover { text-decoration: underline; }
 
-        /* --- Modals --- */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); display: none; justify-content: center; align-items: center; z-index: 2000; opacity: 0; transition: opacity 0.3s ease; }
+        /* --- UPDATED MODALS (FIXED HEADER & CLOSE BUTTON) --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); display: none; justify-content: center; align-items: center; z-index: 2000; opacity: 0; transition: opacity 0.3s ease; padding: 10px; }
         .modal-overlay.active { display: flex; opacity: 1; }
-        .modal-content { background-color: var(--bg-color); width: 90%; max-width: 800px; max-height: 90vh; border-radius: 12px; overflow-y: auto; position: relative; transform: translateY(20px); transition: transform 0.3s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        .modal-content { 
+            background-color: var(--bg-color); 
+            width: 100%; 
+            max-width: 800px; 
+            max-height: 85vh; /* Prevents going off screen */
+            border-radius: 12px; 
+            display: flex; 
+            flex-direction: column; /* Flex layout to separate header and body */
+            overflow: hidden; /* Hide main modal scroll */
+            position: relative; 
+            transform: translateY(20px); 
+            transition: transform 0.3s ease; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+        }
         .modal-overlay.active .modal-content { transform: translateY(0); }
-        .close-modal { position: absolute; top: 15px; right: 15px; background-color: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 35px; height: 35px; font-size: 1.2rem; cursor: pointer; z-index: 10; display: flex; justify-content: center; align-items: center; }
-        .close-modal:hover { background-color: var(--primary); }
-        .modal-image { width: 100%; height: 250px; object-fit: cover; border-bottom: 1px solid var(--border); }
-        .modal-body { padding: 20px; }
-        .modal-title { font-size: 1.3rem; margin-bottom: 10px; color: var(--text-color); line-height: 1.4; }
+
+        /* Fixed Header inside Modal */
+        .modal-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            z-index: 10;
+        }
+        .modal-header-bar h2 {
+            font-size: 1.2rem;
+            color: var(--primary);
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .close-modal { 
+            background-color: rgba(0,0,0,0.05); 
+            color: var(--text-color); 
+            border: none; 
+            border-radius: 50%; 
+            width: 35px; 
+            height: 35px; 
+            font-size: 1.5rem; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            transition: background 0.2s;
+        }
+        .close-modal:hover { background-color: var(--primary); color: white; }
+
+        /* Scrollable Body inside Modal */
+        .modal-body { 
+            padding: 20px; 
+            overflow-y: auto; /* Only this part scrolls */
+            flex-grow: 1;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-image { width: 100%; height: 250px; object-fit: cover; border-bottom: 1px solid var(--border); border-radius: 8px; margin-bottom: 15px; }
         .modal-date { font-size: 0.85rem; color: var(--primary); margin-bottom: 20px; display: block; font-weight: 500; }
         .modal-text { font-size: 1rem; line-height: 1.7; color: var(--text-color); margin-bottom: 20px; }
-        .original-source-link { display: inline-block; margin-top: 15px; padding: 10px 20px; background-color: var(--primary); color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem; }
+        .original-source-link { display: inline-block; padding: 10px 20px; background-color: var(--primary); color: white; text-decoration: none; border-radius: 5px; font-size: 0.9rem; }
 
         .script-block { background-color: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         .script-block h3 { margin-bottom: 10px; font-size: 1.1rem; color: var(--primary); }
         .script-block p { font-size: 0.95rem; line-height: 1.6; margin-bottom: 0; }
         
-        .script-meta-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            padding-top: 12px;
-            border-top: 1px dashed var(--border);
-        }
+        .script-meta-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 12px; border-top: 1px dashed var(--border); }
 
         .spinner-container { display: none; justify-content: center; align-items: center; height: 50vh; }
         .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
@@ -180,9 +227,8 @@
 
         @media (max-width: 600px) {
             .news-grid { grid-template-columns: 1fr; }
-            .modal-content { width: 100%; height: 100vh; max-height: 100vh; border-radius: 0; }
-            .modal-image { height: 220px; }
-            .modal-overlay { align-items: flex-end; }
+            .modal-content { max-height: 90vh; } /* Maximize screen space on mobile */
+            .modal-image { height: 200px; }
             .settings-sidebar { width: 280px; right: -280px; }
             .script-meta-bar { flex-direction: column; align-items: flex-start; gap: 10px; }
             .script-meta-bar button { width: 100%; }
@@ -191,7 +237,6 @@
 </head>
 <body>
 
-    <!-- Fixed Header -->
     <header>
         <div class="logo">Aryan News Tech</div>
         <div class="header-controls">
@@ -200,7 +245,6 @@
         </div>
     </header>
 
-    <!-- Sidebar API Settings -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <div class="settings-sidebar" id="settingsSidebar">
         <div class="sidebar-header">
@@ -252,7 +296,6 @@
         </div>
     </div>
 
-    <!-- Scrollable App Body -->
     <main class="app-body" id="appBody">
         
         <div class="category-bar" id="categoryBar">
@@ -264,7 +307,6 @@
             <button class="cat-btn" data-cat="sports">खेल</button>
         </div>
 
-        <!-- Enhanced & Compact Script Controls (Grid Layout) -->
         <div class="script-controls-container">
             <div class="controls-grid">
                 <select id="aiModeSelector" class="script-dropdown">
@@ -298,20 +340,18 @@
             <div class="news-grid" id="newsGrid"></div>
         </div>
 
-    </main> <!-- End App Body -->
-
-    <!-- Fixed Footer -->
-    <footer>
+    </main> <footer>
         Aryan News Tech &copy; 2026 | ताज़ा समाचार
     </footer>
 
-    <!-- Article Modal -->
     <div class="modal-overlay" id="articleModal">
         <div class="modal-content">
-            <button class="close-modal" id="closeModalBtn">&times;</button>
-            <img src="" alt="News Image" class="modal-image" id="modalImage">
+            <div class="modal-header-bar">
+                <h2 id="modalTitle">पूरी खबर</h2>
+                <button class="close-modal" id="closeModalBtn">&times;</button>
+            </div>
             <div class="modal-body">
-                <h1 class="modal-title" id="modalTitle"></h1>
+                <img src="" alt="News Image" class="modal-image" id="modalImage">
                 <span class="modal-date" id="modalDate"></span>
                 <div class="modal-text" id="modalText"></div>
                 <a href="#" target="_blank" class="original-source-link" id="modalSourceLink">वेबसाइट पर पूरी खबर पढ़ें</a>
@@ -319,32 +359,34 @@
         </div>
     </div>
 
-    <!-- Script Output Modal -->
     <div class="modal-overlay" id="scriptModal">
         <div class="modal-content">
-            <button class="close-modal" id="closeScriptModalBtn">&times;</button>
+            <div class="modal-header-bar">
+                <h2>तैयार की गई न्यूज़ स्क्रिप्ट</h2>
+                <button class="close-modal" id="closeScriptModalBtn">&times;</button>
+            </div>
             <div class="modal-body">
-                <h1 class="modal-title" style="margin-bottom: 20px;">तैयार की गई न्यूज़ स्क्रिप्ट</h1>
                 <button id="copyAllScriptBtn" class="cat-btn active" style="margin-bottom: 20px; width: 100%;">सभी न्यूज़ एक साथ कॉपी करें</button>
                 <div id="scriptContentArea"></div>
             </div>
         </div>
     </div>
 
-    <!-- Manual Input Modal -->
     <div class="modal-overlay" id="manualScriptModal">
         <div class="modal-content">
-            <button class="close-modal" id="closeManualModalBtn">&times;</button>
+            <div class="modal-header-bar">
+                <h2>मैन्युअल टॉपिक से स्क्रिप्ट</h2>
+                <button class="close-modal" id="closeManualModalBtn">&times;</button>
+            </div>
             <div class="modal-body">
-                <h1 class="modal-title" style="margin-bottom: 20px; color: var(--primary);">मैन्युअल टॉपिक से स्क्रिप्ट बनाएं</h1>
-                <p style="margin-bottom: 15px; font-size: 0.9rem;">यहाँ अपना कोई भी टॉपिक, न्यूज़ या हेडलाइन पेस्ट करें। AI इस पर एक विस्तृत स्क्रिप्ट तैयार करेगा।</p>
+                <p style="margin-bottom: 15px; font-size: 0.9rem;">यहाँ अपना कोई भी टॉपिक, न्यूज़ या हेडलाइन पेस्ट करें। AI इस पर एक विस्तृत (1800-2000 शब्दों की) स्क्रिप्ट तैयार करेगा।</p>
                 <div class="form-group">
                     <textarea id="manualTopicInput" rows="8" placeholder="यहाँ अपनी खबर या टॉपिक लिखें..."></textarea>
                 </div>
-                <button id="generateManualScriptBtn" class="cat-btn active" style="width: 100%; font-size: 1rem; padding: 10px;">स्क्रिप्ट तैयार करें</button>
+                <button id="generateManualScriptBtn" class="cat-btn active" style="width: 100%; font-size: 1rem; padding: 10px;">विस्तृत स्क्रिप्ट तैयार करें</button>
                 <div id="manualLoadingText" style="text-align: center; margin-top: 15px; display: none; color: var(--primary); font-weight: bold;">
                     <div class="spinner" style="width: 30px; height: 30px; border-width: 3px; margin: 0 auto 10px auto;"></div>
-                    AI स्क्रिप्ट लिख रहा है... कृपया प्रतीक्षा करें...
+                    AI लंबी स्क्रिप्ट लिख रहा है... कृपया प्रतीक्षा करें (इसमें 15-20 सेकंड लग सकते हैं)...
                 </div>
             </div>
         </div>
@@ -566,7 +608,8 @@
                     body: JSON.stringify({
                         model: "llama-3.1-8b-instant",
                         messages: [ { role: "system", content: systemPrompt }, { role: "user", content: userPrompt } ],
-                        temperature: 0.6,
+                        temperature: 0.7, // slightly higher for creativity and length
+                        max_tokens: 6000, // Explicitly requesting max possible output tokens for long scripts
                         response_format: { type: "json_object" } 
                     })
                 });
@@ -576,31 +619,31 @@
             } catch (error) { console.error("Groq Error:", error); alert("AI से संपर्क करने में त्रुटि आई। कृपया Key जाँचें।"); return null; }
         }
 
-        // --- 1. Manual Script Generation ---
+        // --- 1. Manual Script Generation (Long Form 1800-2000 Words) ---
         document.getElementById('generateManualScriptBtn').addEventListener('click', async function() {
             const topicText = document.getElementById('manualTopicInput').value.trim();
             if(!topicText) { alert("कृपया कोई टॉपिक या न्यूज़ पेस्ट करें।"); return; }
             
             const partsCount = parseInt(document.getElementById('newsCountDropdown').value);
-            const linesCount = parseInt(document.getElementById('scriptLinesDropdown').value);
             
             const btn = this; btn.disabled = true;
             document.getElementById('manualLoadingText').style.display = 'block';
 
             const systemPrompt = "तुम एक प्रोफेशनल और अनुभवी हिंदी न्यूज़ स्क्रिप्ट राइटर हो। तुम्हें आउटपुट सिर्फ JSON फॉर्मेट में देना है।";
-            const userPrompt = `नीचे दी गई जानकारी के आधार पर लगभग 2000 शब्दों की एक विस्तृत और प्रोफेशनल हिंदी न्यूज़ स्क्रिप्ट तैयार करो।
+            const userPrompt = `नीचे दी गई जानकारी के आधार पर एक बहुत ही विस्तृत और प्रोफेशनल हिंदी न्यूज़ स्क्रिप्ट तैयार करो।
 जानकारी: "${topicText}"
 
-शर्तें:
-1. इस पूरी स्क्रिप्ट को ठीक ${partsCount} भागों में बांटो।
-2. हर भाग की स्क्रिप्ट बिल्कुल ${linesCount} लाइनों की होनी चाहिए।
-3. स्क्रिप्ट का आखिरी वाक्य अधूरा नहीं होना चाहिए, वह पूर्ण विराम (।) के साथ ही खत्म होना चाहिए।
-4. हर भाग के लिए एक ऐसी आकर्षक हेडलाइन बनाओ जिसमें उस भाग के मुख्य 'कीवर्ड्स' शामिल हों (ताकि इस हेडलाइन का उपयोग AI इमेज बनाने के लिए किया जा सके)।
+शर्तें (इनका सख्ती से पालन करें):
+1. पूरी स्क्रिप्ट कुल मिलाकर कम से कम 1800 से 2000 शब्दों की होनी चाहिए ताकि 8 से 10 मिनट का वीडियो बन सके। 
+2. कहानी/जानकारी को बहुत विस्तार से समझाएं। 
+3. इस पूरी स्क्रिप्ट को ठीक ${partsCount} भागों में बांटो।
+4. हर भाग की स्क्रिप्ट बहुत लंबी, विस्तृत और पैराग्राफ में होनी चाहिए। कोई भी वाक्य अधूरा न छोड़ें।
+5. हर भाग के लिए एक ऐसी आकर्षक हेडलाइन बनाओ जिसमें उस भाग के मुख्य 'कीवर्ड्स' शामिल हों (ताकि इस हेडलाइन का उपयोग AI इमेज बनाने के लिए किया जा सके)।
 
 नीचे दिए गए JSON फॉर्मेट में ही उत्तर दें:
 {
     "news": [
-        { "headline": "कीवर्ड्स वाली हेडलाइन यहाँ", "script": "यहाँ ${linesCount} लाइनों की स्क्रिप्ट, जो पूर्ण विराम पर समाप्त हो" }
+        { "headline": "कीवर्ड्स वाली हेडलाइन यहाँ", "script": "यहाँ इस भाग की बहुत ही लंबी और विस्तृत स्क्रिप्ट, जो पूर्ण विराम पर समाप्त हो" }
     ]
 }`;
 
@@ -694,6 +737,7 @@
         function renderScriptModal(newsArray) {
             let scriptHTML = '';
             let fullScriptTextToCopy = '';
+            let totalWords = 0;
             
             newsArray.forEach((item, index) => {
                 const headlineText = `${index + 1}. ${item.headline}`;
@@ -702,6 +746,7 @@
                 // Calculate Word and Character Count
                 const charCount = item.script.length;
                 const wordCount = item.script.split(/\s+/).filter(w => w.length > 0).length;
+                totalWords += wordCount;
 
                 scriptHTML += `
                     <div class="script-block">
@@ -721,7 +766,10 @@
                 fullScriptTextToCopy += `${singleScriptText}\n\n\n`; 
             });
 
-            document.getElementById('scriptContentArea').innerHTML = scriptHTML;
+            // Add total words indicator at the top
+            const totalIndicator = `<div style="text-align:center; margin-bottom: 15px; font-weight: bold; color: var(--primary);">कुल जनरेट किये गए शब्द: ${totalWords}</div>`;
+            
+            document.getElementById('scriptContentArea').innerHTML = totalIndicator + scriptHTML;
             document.getElementById('copyAllScriptBtn').onclick = () => copyToClipboardFallback(fullScriptTextToCopy);
             document.getElementById('scriptModal').classList.add('active');
         }
