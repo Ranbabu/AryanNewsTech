@@ -105,12 +105,11 @@
     <div id="script-module" class="card">
         <label>AI Model</label>
         <select id="modelSelect">
-            <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash</option>
-            <option value="meta-llama/llama-3-8b-instruct">Llama 3 8B (Meta)</option>
-            <option value="meta-llama/llama-3-70b-instruct">Llama 3 70B (Meta)</option>
-            <option value="mistralai/mistral-7b-instruct">Mistral 7B (Mistral AI)</option>
-            <option value="qwen/qwen-2-72b-instruct">Qwen 2 72B (Alibaba)</option>
-            <option value="google/gemma-7b-it">Gemma 7B (Google)</option>
+            <!-- यहाँ xKiro के सही और वर्किंग मॉडल IDs अपडेट कर दिए गए हैं -->
+            <option value="google/gemini-2.5-flash" selected>Gemini 2.5 Flash (Default)</option>
+            <option value="openai/gpt-4o-mini">GPT-4o Mini (OpenAI)</option>
+            <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo (OpenAI)</option>
+            <option value="deepseek/deepseek-chat">DeepSeek Chat</option>
         </select>
 
         <label>Topic / Master Prompt</label>
@@ -128,8 +127,8 @@
     <div id="tts-module" class="card hidden">
         <label>Voice Model</label>
         <select id="ttsModel">
-            <option value="tts-1">Standard TTS (tts-1)</option>
-            <option value="tts-1-hd">HD TTS (tts-1-hd)</option>
+            <!-- xKiro का इकलौता वर्किंग वॉइस मॉडल -->
+            <option value="xkiro-voice">xKiro Voice AI</option>
         </select>
 
         <label>Voice</label>
@@ -155,7 +154,6 @@
     </div>
 
     <script>
-        // आपका Cloudflare Worker URL
         const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
 
         function switchTab(tab) {
@@ -204,7 +202,6 @@
                 
                 output.value = data.choices[0].message.content;
             } catch (error) {
-                // इंटरनेट या VPN ब्लॉक होने पर एरर मैसेज
                 if (error.message.includes("Failed to fetch")) {
                     output.value = "⚠️ Error: Failed to fetch.\n\nकारण: आपका इंटरनेट प्रोवाइडर Cloudflare Workers को ब्लॉक कर रहा है।\n\nसॉल्यूशन: होम स्क्रीन पर दिए गए 'Click Here to Test Server' लिंक पर क्लिक करके चेक करें। अगर साइट नहीं खुलती है, तो कोई भी VPN चालू करके दोबारा ट्राई करें।";
                 } else {
