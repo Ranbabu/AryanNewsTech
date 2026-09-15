@@ -103,14 +103,16 @@
 
     <!-- MODULE 1: Script Generator -->
     <div id="script-module" class="card">
-        <label>AI Model</label>
+        
+        <label>AI Model (Select from list)</label>
         <select id="modelSelect">
-            <!-- यहाँ xKiro के सही और वर्किंग मॉडल IDs अपडेट कर दिए गए हैं -->
-            <option value="google/gemini-2.5-flash" selected>Gemini 2.5 Flash (Default)</option>
-            <option value="openai/gpt-4o-mini">GPT-4o Mini (OpenAI)</option>
-            <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo (OpenAI)</option>
-            <option value="deepseek/deepseek-chat">DeepSeek Chat</option>
+            <option value="google/gemini-2.5-flash" selected>Gemini 2.5 Flash</option>
+            <option value="qwen/qwen3.7-max:free">Qwen 3.7 Max (Free)</option>
+            <option value="qwen/qwen3.8-max:free">Qwen 3.8 Max (Free)</option>
         </select>
+
+        <label>OR Enter Custom Model ID</label>
+        <input type="text" id="customModel" placeholder="उदा. qwen/qwen3.7-max:free">
 
         <label>Topic / Master Prompt</label>
         <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज़ टेक। आज की टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज़ एंकर के पढ़ने के अंदाज़ में लिखें।</textarea>
@@ -127,7 +129,6 @@
     <div id="tts-module" class="card hidden">
         <label>Voice Model</label>
         <select id="ttsModel">
-            <!-- xKiro का इकलौता वर्किंग वॉइस मॉडल -->
             <option value="xkiro-voice">xKiro Voice AI</option>
         </select>
 
@@ -174,7 +175,10 @@
         }
 
         async function generateScript() {
-            const model = document.getElementById('modelSelect').value;
+            // अगर यूजर ने कस्टम मॉडल डाला है, तो वह यूज़ होगा, वरना ड्रॉपडाउन वाला
+            let customModelInput = document.getElementById('customModel').value.trim();
+            let finalModel = customModelInput ? customModelInput : document.getElementById('modelSelect').value;
+
             const prompt = document.getElementById('promptInput').value;
             const btn = document.getElementById('generateBtn');
             const loader = document.getElementById('scriptLoader');
@@ -189,7 +193,7 @@
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        model: model,
+                        model: finalModel,
                         messages: [{ role: "user", content: prompt }]
                     })
                 });
