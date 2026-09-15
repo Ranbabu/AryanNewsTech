@@ -1,285 +1,467 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI News Studio</title>
-    <style>
-        :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --text-main: #ffffff;
-            --accent: #00d26a;
-            --border: #333333;
-        }
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 15px;
-        }
-        h2 { font-size: 1.3rem; margin-bottom: 10px; text-align: center; color: var(--accent); }
-        
-        .server-status {
-            text-align: center;
-            font-size: 0.85rem;
-            background-color: var(--card-bg);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            margin-bottom: 20px;
-            color: #aaa;
-        }
-        .server-status a {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-            border: 1px solid var(--border);
-        }
-        
-        label { font-size: 0.9rem; margin-bottom: 5px; display: block; color: #aaa; }
-        
-        input, select, textarea {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-size: 1rem;
-            box-sizing: border-box;
-        }
-        
-        textarea { resize: vertical; min-height: 120px; }
-        
-        button {
-            width: 100%;
-            padding: 14px;
-            background-color: var(--accent);
-            color: #000;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        
-        button:active { opacity: 0.7; }
-        button:disabled { background-color: #555; color: #888; }
-        
-        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
-        .btn-secondary { background-color: #444; color: #fff; }
-        .btn-copy { background-color: #007bff; color: #fff; }
-
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { background-color: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); flex: 1; }
-        .tab-btn.active { background-color: var(--accent); color: #000; border-color: var(--accent); }
-        
-        .hidden { display: none; }
-        .loader { text-align: center; font-size: 0.9rem; color: var(--accent); margin-top: -10px; margin-bottom: 15px; display: none; }
-        audio { width: 100%; margin-top: 10px; border-radius: 8px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AI News Studio Pro</title>
+<style>
+    :root { --bg-color:#121212; --card-bg:#1e1e1e; --text-main:#ffffff; --accent:#00d26a; --border:#333333; }
+    body { font-family: system-ui, -apple-system, sans-serif; background-color:var(--bg-color); color:var(--text-main); margin:0; padding:15px; }
+    h2 { font-size:1.3rem; margin-bottom:10px; text-align:center; color:var(--accent); }
+    .server-status { text-align:center; font-size:0.85rem; background-color:var(--card-bg); padding:10px; border-radius:8px; border:1px solid var(--border); margin-bottom:20px; color:#aaa; }
+    .server-status a { color:var(--accent); text-decoration:none; font-weight:bold; }
+    .card { background-color:var(--card-bg); padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid var(--border); }
+    label { font-size:0.9rem; margin-bottom:5px; display:block; color:#aaa; }
+    input, select, textarea { width:100%; padding:12px; margin-bottom:15px; border-radius:8px; border:1px solid var(--border); background-color:var(--bg-color); color:var(--text-main); font-size:1rem; box-sizing:border-box; }
+    textarea { resize:vertical; min-height:100px; }
+    button { width:100%; padding:14px; background-color:var(--accent); color:#000; border:none; border-radius:8px; font-size:1rem; font-weight:bold; cursor:pointer; transition:opacity 0.2s; }
+    button:active { opacity:0.7; }
+    button:disabled { background-color:#555; color:#888; }
+    .btn-group { display:flex; gap:10px; margin-top:5px; }
+    .btn-secondary { background-color:#444; color:#fff; }
+    .btn-copy { background-color:#007bff; color:#fff; }
+    .tabs { display:flex; gap:8px; margin-bottom:20px; }
+    .tab-btn { background-color:var(--card-bg); color:var(--text-main); border:1px solid var(--border); flex:1; font-size:0.85rem; padding:12px 4px; }
+    .tab-btn.active { background-color:var(--accent); color:#000; border-color:var(--accent); }
+    .hidden { display:none; }
+    .loader { text-align:center; font-size:0.9rem; color:var(--accent); margin-top:-10px; margin-bottom:15px; display:none; }
+    audio { width:100%; margin-top:10px; border-radius:8px; }
+    #thumbImg { width:100%; border-radius:8px; border:1px solid var(--border); margin-bottom:10px; display:block; }
+    .hint { font-size:0.75rem; color:#888; margin-top:-10px; margin-bottom:12px; }
+</style>
 </head>
 <body>
 
-    <h2>AI Studio Mobile</h2>
+<h2>AI News Studio Pro</h2>
 
-    <!-- Server Test Link -->
-    <div class="server-status">
-        🟢 Server Status: <a href="https://aryannewstech.babu902654.workers.dev/" target="_blank">Click Here to Test Server</a>
+<div class="server-status">
+    🟢 Server Status: <a href="https://aryannewstech.babu902654.workers.dev/" target="_blank">Click Here to Test Server</a>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" id="tab-script" onclick="switchTab('script')">📝 Script</button>
+    <button class="tab-btn" id="tab-tts" onclick="switchTab('tts')">🎙️ Voice</button>
+    <button class="tab-btn" id="tab-thumb" onclick="switchTab('thumb')">🎨 Thumbnail</button>
+</div>
+
+<!-- ========== MODULE 1: SCRIPT ========== -->
+<div id="script-module" class="card">
+    <label>AI Model (Select Free Model)</label>
+    <select id="modelSelect">
+        <option value="google/gemini-2.5-flash:free" selected>Gemini 2.5 Flash (Free)</option>
+        <option value="qwen/qwen-2.5-72b-instruct:free">Qwen 72B (Best for Hindi)</option>
+        <option value="qwen/qwen3.7-max:free">Qwen 3.7 Max (Free)</option>
+    </select>
+
+    <label>OR Enter Custom Model ID (Optional)</label>
+    <input type="text" id="customModel" placeholder="e.g. google/gemini-2.5-flash:free">
+
+    <label>Topic / Master Prompt</label>
+    <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज़ टेक। आज की टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज़ एंकर के पढ़ने के अंदाज़ में लिखें।</textarea>
+
+    <button id="generateBtn" onclick="generateScript()">Generate Script</button>
+    <div id="scriptLoader" class="loader">Generating... Please wait.</div>
+
+    <label style="margin-top:15px;">Output Script</label>
+    <textarea id="scriptOutput" placeholder="Your generated script will appear here..."></textarea>
+
+    <div class="btn-group">
+        <button class="btn-copy" onclick="copyScript()">📋 Copy</button>
+        <button class="btn-secondary" onclick="copyToTTS()">Voice AI ➡️</button>
     </div>
+</div>
 
-    <!-- Tabs -->
-    <div class="tabs">
-        <button class="tab-btn active" id="tab-script" onclick="switchTab('script')">📝 Script AI</button>
-        <button class="tab-btn" id="tab-tts" onclick="switchTab('tts')">🎙️ Voice AI</button>
-    </div>
+<!-- ========== MODULE 2: TEXT TO SPEECH ========== -->
+<div id="tts-module" class="card hidden">
+    <label>Voice Model (काम करने वाले मॉडल)</label>
+    <select id="ttsModel" onchange="populateVoices()">
+        <optgroup label="🆓 FREE मॉडल (बिना क्रेडिट)">
+            <option value="deepgram/flux-tts:free">Deepgram Flux TTS (FREE)</option>
+            <option value="fish-audio/s2.1-pro-free:free">Fish Audio S2.1 Pro (FREE, Multilingual)</option>
+        </optgroup>
+        <optgroup label="🇮🇳 Hindi सपोर्ट करने वाले">
+            <option value="hexgrad/kokoro-82m" selected>Kokoro 82M (Hindi voices – सस्ता)</option>
+            <option value="google/gemini-3.1-flash-tts-preview">Gemini 3.1 Flash TTS (70+ भाषा, Best)</option>
+            <option value="x-ai/grok-voice-tts-1.0">Grok Voice TTS 1.0 (Auto Hindi)</option>
+        </optgroup>
+        <optgroup label="💰 Premium English">
+            <option value="minimax/speech-2.8-turbo">MiniMax Speech 2.8 Turbo</option>
+            <option value="microsoft/mai-voice-2">Microsoft MAI-Voice-2</option>
+        </optgroup>
+        <optgroup label="📱 Device Built-in (Offline, 100% Free)">
+            <option value="browser-hi">Browser Hindi Voice (Offline)</option>
+            <option value="browser-en">Browser English Voice (Offline)</option>
+        </optgroup>
+    </select>
 
-    <!-- MODULE 1: Script Generator -->
-    <div id="script-module" class="card">
-        
-        <label>AI Model (Select Free Model)</label>
-        <select id="modelSelect">
-            <option value="google/gemini-2.5-flash:free" selected>Gemini 2.5 Flash (Free)</option>
-            <option value="qwen/qwen-2.5-72b-instruct:free">Qwen 72B (Best for Hindi)</option>
-            <option value="qwen/qwen3.7-max:free">Qwen 3.7 Max (Free)</option>
-        </select>
+    <label>Voice (आवाज़ चुनें)</label>
+    <select id="voiceSelect"></select>
 
-        <label>OR Enter Custom Model ID (Optional)</label>
-        <input type="text" id="customModel" placeholder="e.g. google/gemini-2.5-flash:free">
+    <label>Custom Voice ID (Optional – ऊपर वाला override होगा)</label>
+    <input type="text" id="customVoice" placeholder="e.g. hf_alpha / Zephyr / flux-priya-en">
 
-        <label>Topic / Master Prompt</label>
-        <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज़ टेक। आज की टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज़ एंकर के पढ़ने के अंदाज़ में लिखें।</textarea>
+    <label>Speed: <span id="speedVal">1.0</span>x</label>
+    <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1" oninput="document.getElementById('speedVal').innerText=this.value">
 
-        <button id="generateBtn" onclick="generateScript()">Generate Script</button>
-        <div id="scriptLoader" class="loader">Generating... Please wait.</div>
+    <label>Text to Speak</label>
+    <textarea id="ttsInput" placeholder="यहाँ वह टेक्स्ट पेस्ट करें जिसे आवाज़ में बदलना है..."></textarea>
 
-        <label style="margin-top: 15px;">Output Script</label>
-        <textarea id="scriptOutput" placeholder="Your generated script will appear here..."></textarea>
-        
+    <button id="ttsBtn" onclick="generateSpeech()">Generate Audio</button>
+    <div id="ttsLoader" class="loader">Generating Audio... Please wait.</div>
+    <div id="browserNote" class="hint hidden">📱 Device voice चल रही है। डाउनलोड के लिए स्क्रीन/ऑडियो रिकॉर्डर इस्तेमाल करें।</div>
+
+    <div id="audioContainer" class="hidden">
+        <label style="margin-top:15px;">Your Audio</label>
+        <audio id="audioPlayer" controls></audio>
         <div class="btn-group">
-            <button class="btn-copy" onclick="copyScript()">📋 Copy Script</button>
-            <button class="btn-secondary" onclick="copyToTTS()">Voice AI ➡️</button>
+            <button class="btn-copy" id="dlAudioBtn" onclick="downloadAudio()">⬇️ Download MP3</button>
         </div>
     </div>
+</div>
 
-    <!-- MODULE 2: Text-to-Speech -->
-    <div id="tts-module" class="card hidden">
-        <label>Voice Model</label>
-        <select id="ttsModel">
-            <option value="xkiro-voice">xKiro Voice AI</option>
-        </select>
+<!-- ========== MODULE 3: YOUTUBE THUMBNAIL GENERATOR ========== -->
+<div id="thumb-module" class="card hidden">
+    <label>Image Engine / Model</label>
+    <select id="imgModel">
+        <optgroup label="🆓 FREE – क्रेडिट की ज़रूरत नहीं">
+            <option value="pollinations" selected>Pollinations FLUX (Free, No Login)</option>
+        </optgroup>
+        <optgroup label="🎨 OpenRouter Image Models (सर्वर क्रेडिट चाहिए)">
+            <option value="google/gemini-2.5-flash-image">Gemini 2.5 Flash Image (Nano Banana)</option>
+            <option value="google/gemini-3.1-flash-lite-image">Nano Banana 2 Lite (सबसे सस्ता)</option>
+            <option value="google/gemini-3.1-flash-image">Nano Banana 2 (Gemini 3.1 Flash)</option>
+            <option value="google/gemini-3-pro-image">Nano Banana Pro (Best Quality)</option>
+            <option value="bytedance-seed/seedream-4.5">Seedream 4.5</option>
+            <option value="black-forest-labs/flux.2-pro">FLUX.2 Pro</option>
+            <option value="openai/gpt-image-1">GPT Image 1</option>
+        </optgroup>
+    </select>
 
-        <label>Custom Voice ID (Leave blank for default)</label>
-        <!-- xKiro डैशबोर्ड से हिंदी वॉयस ID यहाँ टाइप कर सकते हैं -->
-        <input type="text" id="customVoice" placeholder="e.g. hi-IN-1 या hindi-male">
+    <label>Custom Image Model ID (Optional)</label>
+    <input type="text" id="customImgModel" placeholder="e.g. google/gemini-3-pro-image">
 
-        <label>Text to Speak</label>
-        <textarea id="ttsInput" placeholder="यहाँ वह टेक्स्ट पेस्ट करें जिसे आवाज़ में बदलना है..."></textarea>
+    <label>Thumbnail Style</label>
+    <select id="thumbStyle">
+        <option value="news" selected>📺 Breaking News (लाल बैनर, TV स्टूडियो)</option>
+        <option value="tech">💻 Tech Review (नीयॉन ब्लू-पर्पल)</option>
+        <option value="gaming">🎮 Gaming (RGB, एक्शन)</option>
+        <option value="crypto">💰 Crypto/Finance (चार्ट, गोल्ड)</option>
+        <option value="vlog">🌍 Vlog/Travel (ब्राइट कलर्स)</option>
+        <option value="edu">🎓 Educational (क्लीन, मिनिमल)</option>
+        <option value="custom">✏️ सिर्फ़ मेरा डिस्क्रिप्शन</option>
+    </select>
 
-        <button id="ttsBtn" onclick="generateSpeech()">Generate Audio</button>
-        <div id="ttsLoader" class="loader">Generating Audio... Please wait.</div>
+    <label>Main Headline Text (थंबनेल पर दिखने वाला बड़ा टेक्स्ट)</label>
+    <input type="text" id="thumbTitle" placeholder="e.g. आज की टॉप 10 खबरें | Aryan News Tech">
 
-        <div id="audioContainer" class="hidden">
-            <label style="margin-top: 15px;">Your Audio</label>
-            <audio id="audioPlayer" controls></audio>
+    <label>Extra Description / Prompt</label>
+    <textarea id="thumbPrompt">Confident Indian male news anchor in a modern TV studio, breaking news red lower-third banner, glowing screens and world map background, dramatic lighting</textarea>
+    <p class="hint">💡 टिप: Free engine पर Hindi टेक्स्ट कभी-कभी टूट सकता है — Hindi headline के लिए Nano Banana मॉडल बेस्ट है।</p>
+
+    <button id="thumbBtn" onclick="generateThumbnail()">🎨 Generate Thumbnail</button>
+    <div id="thumbLoader" class="loader">Image बन रही है... 30-60 सेकंड लग सकते हैं।</div>
+
+    <div id="thumbResult" class="hidden">
+        <img id="thumbImg" alt="YouTube Thumbnail">
+        <div class="btn-group">
+            <button class="btn-copy" onclick="downloadImage(false)">⬇️ Download PNG</button>
+            <button class="btn-secondary" onclick="downloadImage(true)">📐 1280×720 Download</button>
         </div>
     </div>
+</div>
 
-    <script>
-        const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
+<script>
+const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
+let currentImageUrl = null;   // जनरेट हुई इमेज का URL/data-URL
+let currentAudioUrl = null;   // जनरेट हुए ऑडियो का blob URL
 
-        function switchTab(tab) {
-            document.getElementById('script-module').classList.add('hidden');
-            document.getElementById('tts-module').classList.add('hidden');
-            document.getElementById('tab-script').classList.remove('active');
-            document.getElementById('tab-tts').classList.remove('active');
+/* ---------- हर TTS मॉडल की असली supported voices (OpenRouter API से ली गई) ---------- */
+const TTS_VOICES = {
+    "deepgram/flux-tts:free": ["flux-priya-en","flux-meena-en","flux-naveen-en","flux-alexis-en","flux-bree-en","flux-brittany-en","flux-brooke-en","flux-bruce-en","flux-cliff-en","flux-cole-en","flux-colin-en","flux-conor-en","flux-donovan-en","flux-drew-en","flux-elise-en","flux-gemma-en","flux-haley-en","flux-hannah-en","flux-heather-en","flux-jack-en","flux-kai-en","flux-kelsey-en","flux-kit-en","flux-maeve-en","flux-marcelo-en","flux-marcus-en","flux-meghan-en","flux-miles-en","flux-paige-en","flux-rufus-en","flux-sean-en","flux-sharon-en","flux-sienna-en","flux-tanner-en","flux-wade-en","flux-wes-en"],
+    "fish-audio/s2.1-pro-free:free": [],   // voice optional / कस्टम voice ID
+    "hexgrad/kokoro-82m": ["hf_alpha","hf_beta","hm_omega","hm_psi","af_heart","af_sarah","af_nicole","am_adam","am_michael","am_onyx","bf_emma","bf_isabella","bm_daniel","bm_fable"],
+    "google/gemini-3.1-flash-tts-preview": ["Zephyr","Puck","Charon","Kore","Fenrir","Leda","Orus","Aoede","Callirrhoe","Autonoe","Enceladus","Iapetus","Umbriel","Algieba","Despina","Erinome","Algenib","Rasalgethi","Laomedeia","Achernar","Alnilam","Schedar","Gacrux","Pulcherrima","Achird","Zubenelgenubi","Vindemiatrix","Sadachbia","Sadaltager","Sulafat"],
+    "x-ai/grok-voice-tts-1.0": ["eve","ara","rex","sal","leo"],
+    "minimax/speech-2.8-turbo": ["English_expressive_narrator","English_radiant_girl","English_magnetic_voiced_man","English_CalmWoman","English_Trustworth_Man","English_Gentle-voiced_man","English_Graceful_Lady"],
+    "microsoft/mai-voice-2": ["en-US-Harper:MAI-Voice-2","es-MX-Valeria:MAI-Voice-2","fr-FR-Soleil:MAI-Voice-2","de-DE-Klaus:MAI-Voice-2"]
+};
 
-            document.getElementById(`${tab}-module`).classList.remove('hidden');
-            document.getElementById(`tab-${tab}`).classList.add('active');
+/* ---------- Thumbnail स्टाइल डिस्क्रिप्शन ---------- */
+const THUMB_STYLES = {
+    news:  "breaking news TV broadcast look, red breaking-news lower-third banner, modern news studio, dramatic red and blue studio lighting, photo-realistic",
+    tech:  "tech review YouTube thumbnail style, dark background with neon blue and purple glow, floating gadgets and holographic UI elements",
+    gaming:"gaming YouTube thumbnail style, vibrant RGB neon lights, dynamic action composition, high saturation, epic energy",
+    crypto:"finance and crypto YouTube thumbnail style, green candlestick stock charts, golden coins, dark glossy background",
+    vlog:  "travel vlog thumbnail style, bright sunny colors, candid energetic composition, beautiful scenic background",
+    edu:   "educational documentary thumbnail style, clean minimal layout, subtle diagrams and chalkboard elements, soft lighting",
+    custom:""
+};
+
+/* ================= TAB SWITCH ================= */
+function switchTab(tab) {
+    ['script','tts','thumb'].forEach(t => {
+        document.getElementById(t + '-module').classList.add('hidden');
+        document.getElementById('tab-' + t).classList.remove('active');
+    });
+    document.getElementById(tab + '-module').classList.remove('hidden');
+    document.getElementById('tab-' + tab).classList.add('active');
+}
+
+/* ================= SCRIPT MODULE ================= */
+function copyScript() {
+    const script = document.getElementById('scriptOutput');
+    if (script.value.trim() === "") return alert("कॉपी करने के लिए कोई स्क्रिप्ट नहीं है!");
+    script.select();
+    document.execCommand("copy");
+    alert("✅ स्क्रिप्ट कॉपी हो गई!");
+}
+function copyToTTS() {
+    const script = document.getElementById('scriptOutput').value;
+    if (script.trim() === "") return alert("पहले स्क्रिप्ट जनरेट करें!");
+    document.getElementById('ttsInput').value = script;
+    switchTab('tts');
+}
+async function generateScript() {
+    let customModelInput = document.getElementById('customModel').value.trim();
+    let finalModel = customModelInput ? customModelInput : document.getElementById('modelSelect').value;
+    const basePrompt = document.getElementById('promptInput').value;
+    const hiddenInstructions = "\n\nमहत्वपूर्ण निर्देश: पूरी स्क्रिप्ट बिल्कुल क्लीन प्लेन टेक्स्ट (Plain Text) में होनी चाहिए। किसी भी तरह के स्टार (**), बुलेट पॉइंट, डॉट या हैश (#) का इस्तेमाल बिल्कुल न करें। इसे सीधा एक न्यूज़ एंकर के पढ़ने के लिए साफ़ पैराग्राफ फॉर्मेट में दें।";
+    const finalPrompt = basePrompt + hiddenInstructions;
+    const btn = document.getElementById('generateBtn');
+    const loader = document.getElementById('scriptLoader');
+    const output = document.getElementById('scriptOutput');
+    btn.disabled = true; loader.style.display = "block"; output.value = "";
+    try {
+        const response = await fetch(`${WORKER_URL}/v1/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: finalModel, messages: [{ role: "user", content: finalPrompt }] })
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error?.message || data.error || `API Error (${response.status})`);
+        let cleanScript = data.choices[0].message.content;
+        cleanScript = cleanScript.replace(/\*/g, '').replace(/#/g, '');
+        output.value = cleanScript.trim();
+    } catch (error) {
+        output.value = "⚠️ Error: " + error.message;
+    } finally {
+        btn.disabled = false; loader.style.display = "none";
+    }
+}
+
+/* ================= VOICE (TTS) MODULE ================= */
+function populateVoices() {
+    const model = document.getElementById('ttsModel').value;
+    const vs = document.getElementById('voiceSelect');
+    vs.innerHTML = "";
+    if (model === "browser-hi" || model === "browser-en") {
+        const pref = (model === "browser-hi") ? "hi" : "en";
+        let all = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+        let list = all.filter(v => v.lang.toLowerCase().startsWith(pref));
+        if (!list.length) list = all;
+        if (!list.length) { vs.add(new Option("Default Device Voice", "")); return; }
+        list.forEach(v => vs.add(new Option(`${v.name} (${v.lang})`, v.voiceURI)));
+    } else {
+        const list = TTS_VOICES[model] || [];
+        if (!list.length) {
+            vs.add(new Option("(Default / Custom Voice ID डालें)", ""));
+        } else {
+            list.forEach((v, i) => vs.add(new Option(v + (i === 0 ? " ⭐ recommended" : ""), v)));
         }
+    }
+}
+if (window.speechSynthesis) speechSynthesis.onvoiceschanged = populateVoices;
 
-        // नई कॉपी स्क्रिप्ट फंक्शन
-        function copyScript() {
-            const script = document.getElementById('scriptOutput');
-            if(script.value.trim() === "") return alert("कॉपी करने के लिए कोई स्क्रिप्ट नहीं है!");
-            script.select();
-            document.execCommand("copy");
-            alert("✅ स्क्रिप्ट कॉपी हो गई!");
+function generateSpeech() {
+    const text = document.getElementById('ttsInput').value;
+    if (!text.trim()) return alert("कृपया जनरेट करने के लिए टेक्स्ट डालें!");
+    const model = document.getElementById('ttsModel').value;
+    const speed = parseFloat(document.getElementById('speedRange').value);
+
+    /* --- Offline Browser Voice रास्ता --- */
+    if (model.startsWith("browser-")) {
+        if (!window.speechSynthesis) return alert("आपका ब्राउज़र TTS सपोर्ट नहीं करता।");
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        const uri = document.getElementById('voiceSelect').value;
+        const v = speechSynthesis.getVoices().find(x => x.voiceURI === uri);
+        if (v) u.voice = v;
+        u.lang = (model === "browser-hi") ? "hi-IN" : "en-US";
+        u.rate = speed;
+        document.getElementById('audioContainer').classList.add('hidden');
+        document.getElementById('browserNote').classList.remove('hidden');
+        speechSynthesis.speak(u);
+        return;
+    }
+
+    /* --- Server (OpenRouter /v1/audio/speech) रास्ता --- */
+    let voice = document.getElementById('customVoice').value.trim() || document.getElementById('voiceSelect').value;
+    const body = { model: model, input: text, response_format: "mp3", speed: speed };
+    if (voice) body.voice = voice;   // Fish Audio जैसे मॉडल में voice optional है
+
+    const btn = document.getElementById('ttsBtn');
+    const loader = document.getElementById('ttsLoader');
+    const audioContainer = document.getElementById('audioContainer');
+    const audioPlayer = document.getElementById('audioPlayer');
+    btn.disabled = true; loader.style.display = "block";
+    audioContainer.classList.add('hidden');
+    document.getElementById('browserNote').classList.add('hidden');
+
+    fetch(`${WORKER_URL}/v1/audio/speech`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    }).then(async response => {
+        if (!response.ok) {
+            let msg = `API Error (${response.status})`;
+            try { const e = await response.json(); msg = e.error?.message || e.error || msg; } catch (_) {}
+            throw new Error(msg);
         }
+        return response.blob();
+    }).then(blob => {
+        if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+        currentAudioUrl = URL.createObjectURL(blob);
+        audioPlayer.src = currentAudioUrl;
+        audioContainer.classList.remove('hidden');
+        audioPlayer.play().catch(() => {});
+    }).catch(error => {
+        alert("Error: " + error.message + "\n\nटिप: FREE के लिए 'Deepgram Flux TTS (FREE)' या 'Fish Audio S2.1 Pro (FREE)' चुनें, Hindi के लिए Kokoro (hf_alpha) या Gemini TTS चुनें, या बिल्कुल offline 'Browser Hindi Voice' इस्तेमाल करें।");
+    }).finally(() => {
+        btn.disabled = false; loader.style.display = "none";
+    });
+}
+function downloadAudio() {
+    if (!currentAudioUrl) return alert("पहले ऑडियो जनरेट करें!");
+    const a = document.createElement('a');
+    a.href = currentAudioUrl; a.download = "voice-" + Date.now() + ".mp3";
+    document.body.appendChild(a); a.click(); a.remove();
+}
 
-        function copyToTTS() {
-            const script = document.getElementById('scriptOutput').value;
-            if(script.trim() === "") return alert("पहले स्क्रिप्ट जनरेट करें!");
-            document.getElementById('ttsInput').value = script;
-            switchTab('tts');
-        }
+/* ================= THUMBNAIL (IMAGE) MODULE ================= */
+function buildThumbPrompt() {
+    const styleKey = document.getElementById('thumbStyle').value;
+    const styleDesc = THUMB_STYLES[styleKey] || "";
+    const title = document.getElementById('thumbTitle').value.trim();
+    const extra = document.getElementById('thumbPrompt').value.trim();
+    let p = "YouTube thumbnail, 16:9 widescreen composition, 1280x720, " + styleDesc;
+    if (title) p += `. Large bold headline text written exactly and correctly: "${title}" , text clearly readable, high contrast outline on text`;
+    if (extra) p += ". " + extra;
+    p += ". Highly detailed, vibrant colors, dramatic professional lighting, sharp focus, no watermark, no logo, no extra text.";
+    return p;
+}
 
-        async function generateScript() {
-            let customModelInput = document.getElementById('customModel').value.trim();
-            let finalModel = customModelInput ? customModelInput : document.getElementById('modelSelect').value;
+async function generateThumbnail() {
+    const customImg = document.getElementById('customImgModel').value.trim();
+    const engine = customImg ? customImg : document.getElementById('imgModel').value;
+    const prompt = buildThumbPrompt();
+    const btn = document.getElementById('thumbBtn');
+    const loader = document.getElementById('thumbLoader');
+    const result = document.getElementById('thumbResult');
+    const img = document.getElementById('thumbImg');
 
-            // छिपी हुई कमांड ताकि AI क्लीन टेक्स्ट दे
-            const basePrompt = document.getElementById('promptInput').value;
-            const hiddenInstructions = "\n\nमहत्वपूर्ण निर्देश: पूरी स्क्रिप्ट बिल्कुल क्लीन प्लेन टेक्स्ट (Plain Text) में होनी चाहिए। किसी भी तरह के स्टार (**), बुलेट पॉइंट, डॉट या हैश (#) का इस्तेमाल बिल्कुल न करें। इसे सीधा एक न्यूज़ एंकर के पढ़ने के लिए साफ़ पैराग्राफ फॉर्मेट में दें।";
-            const finalPrompt = basePrompt + hiddenInstructions;
+    btn.disabled = true; loader.style.display = "block"; result.classList.add('hidden');
 
-            const btn = document.getElementById('generateBtn');
-            const loader = document.getElementById('scriptLoader');
-            const output = document.getElementById('scriptOutput');
-
-            btn.disabled = true;
-            loader.style.display = "block";
-            output.value = "";
-
+    try {
+        if (engine === "pollinations") {
+            /* 🆓 FREE engine – सीधे URL से इमेज */
+            const seed = Math.floor(Math.random() * 999999);
+            const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt) +
+                        "?width=1280&height=720&model=flux&nologo=true&seed=" + seed;
+            await new Promise((res, rej) => {
+                const tmp = new Image();
+                tmp.onload = res; tmp.onerror = () => rej(new Error("Free engine से इमेज लोड नहीं हुई, दोबारा कोशिश करें"));
+                tmp.src = url;
+            });
+            currentImageUrl = url;
+            img.src = url;
+        } else {
+            /* 🎨 OpenRouter – पहले /v1/images, fallback chat/completions */
+            let dataUrl = null;
             try {
-                const response = await fetch(`${WORKER_URL}/v1/chat/completions`, {
+                const r1 = await fetch(`${WORKER_URL}/v1/images`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ model: engine, prompt: prompt })
+                });
+                if (r1.ok) {
+                    const d1 = await r1.json();
+                    const item = d1.data && d1.data[0];
+                    if (item && item.b64_json) dataUrl = `data:${item.media_type || "image/png"};base64,${item.b64_json}`;
+                    else if (item && item.url) dataUrl = item.url;
+                }
+                if (!dataUrl) throw new Error("images-api-fallback");
+            } catch (_) {
+                const r2 = await fetch(`${WORKER_URL}/v1/chat/completions`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        model: finalModel,
-                        messages: [{ role: "user", content: finalPrompt }]
+                        model: engine,
+                        messages: [{ role: "user", content: prompt }],
+                        modalities: ["image", "text"]
                     })
                 });
-
-                const data = await response.json();
-                
-                if (!response.ok || data.error) {
-                    throw new Error(data.error?.message || data.error || `API Error (${response.status})`);
+                const d2 = await r2.json();
+                if (!r2.ok || d2.error) throw new Error(d2.error?.message || d2.error || `API Error (${r2.status})`);
+                const msg = d2.choices[0].message;
+                if (msg.images && msg.images.length) {
+                    dataUrl = msg.images[0].image_url?.url || msg.images[0].url;
+                } else if (Array.isArray(msg.content)) {
+                    const part = msg.content.find(c => c.type === "image_url");
+                    if (part) dataUrl = part.image_url?.url || part.image_url;
+                } else if (typeof msg.content === "string") {
+                    const m = msg.content.match(/data:image\/[a-z+]+;base64,[A-Za-z0-9+/=]+/i) || msg.content.match(/https?:\/\/\S+\.(?:png|jpe?g|webp)/i);
+                    if (m) dataUrl = m[0];
                 }
-                
-                // रिस्पांस से अगर फिर भी कुछ स्टार आ जाएँ तो उसे JavaScript से रिमूव कर रहे हैं
-                let cleanScript = data.choices[0].message.content;
-                cleanScript = cleanScript.replace(/\*/g, ''); 
-                cleanScript = cleanScript.replace(/#/g, ''); 
-                
-                output.value = cleanScript.trim();
-            } catch (error) {
-                output.value = "⚠️ Error: " + error.message;
-            } finally {
-                btn.disabled = false;
-                loader.style.display = "none";
             }
+            if (!dataUrl) throw new Error("इमेज मिली नहीं – मॉडल ID जाँचें या क्रेडिट चेक करें");
+            currentImageUrl = dataUrl;
+            img.src = dataUrl;
         }
+        result.classList.remove('hidden');
+    } catch (error) {
+        alert("⚠️ Thumbnail Error: " + error.message + "\n\nटिप: क्रेडिट न हो तो 'Pollinations FLUX (Free)' engine चुनें।");
+    } finally {
+        btn.disabled = false; loader.style.display = "none";
+    }
+}
 
-        async function generateSpeech() {
-            const text = document.getElementById('ttsInput').value;
-            if (!text) return alert("कृपया जनरेट करने के लिए टेक्स्ट डालें!");
-
-            const model = document.getElementById('ttsModel').value;
-            let voice = document.getElementById('customVoice').value.trim();
-            
-            // अगर कस्टम वॉयस खाली है तो एक डिफ़ॉल्ट वैल्यू भेजेंगे
-            if (!voice) voice = "alloy"; 
-
-            const btn = document.getElementById('ttsBtn');
-            const loader = document.getElementById('ttsLoader');
-            const audioContainer = document.getElementById('audioContainer');
-            const audioPlayer = document.getElementById('audioPlayer');
-
-            btn.disabled = true;
-            loader.style.display = "block";
-            audioContainer.classList.add('hidden');
-
-            try {
-                const response = await fetch(`${WORKER_URL}/v1/audio/speech`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        model: model,
-                        input: text,
-                        voice: voice
-                    })
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.error?.message || errData.error || "Failed to generate audio");
-                }
-
-                const blob = await response.blob();
-                const audioUrl = URL.createObjectURL(blob);
-                audioPlayer.src = audioUrl;
-                audioContainer.classList.remove('hidden');
-                audioPlayer.play();
-
-            } catch (error) {
-                alert("Error: " + error.message + "\n\nटिप: अगर वॉयस का एरर आ रहा है, तो xKiro डैशबोर्ड से 'Voice ID' चेक करें और उसे Custom Voice Box में डालें।");
-            } finally {
-                btn.disabled = false;
-                loader.style.display = "none";
-            }
+/* इमेज को canvas पर 1280x720 (cover-crop) बनाकर डाउनलोड */
+function downloadImage(forceResize) {
+    if (!currentImageUrl) return alert("पहले थंबनेल जनरेट करें!");
+    const finish = (url, name) => {
+        const a = document.createElement('a');
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+    };
+    if (!forceResize && currentImageUrl.startsWith("data:")) {
+        finish(currentImageUrl, "thumbnail-" + Date.now() + ".png");
+        return;
+    }
+    const im = new Image();
+    im.crossOrigin = "anonymous";
+    im.onload = () => {
+        try {
+            const c = document.createElement('canvas');
+            c.width = 1280; c.height = 720;
+            const ctx = c.getContext('2d');
+            const scale = Math.max(1280 / im.width, 720 / im.height);
+            const dw = im.width * scale, dh = im.height * scale;
+            ctx.drawImage(im, (1280 - dw) / 2, (720 - dh) / 2, dw, dh);
+            c.toBlob(blob => {
+                const u = URL.createObjectURL(blob);
+                finish(u, "youtube-thumbnail-1280x720.png");
+                setTimeout(() => URL.revokeObjectURL(u), 5000);
+            }, "image/png");
+        } catch (e) {
+            window.open(currentImageUrl, "_blank");   // CORS block हो तो नई टैब में खोलें
         }
-    </script>
+    };
+    im.onerror = () => window.open(currentImageUrl, "_blank");
+    im.src = currentImageUrl;
+}
+
+/* शुरूआत में voice dropdown भरें */
+populateVoices();
+</script>
 </body>
 </html>
