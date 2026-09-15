@@ -11,7 +11,6 @@
             --text-main: #ffffff;
             --accent: #00d26a;
             --border: #333333;
-            --error: #ff4d4d;
         }
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -22,7 +21,6 @@
         }
         h2 { font-size: 1.3rem; margin-bottom: 10px; text-align: center; color: var(--accent); }
         
-        /* नया सर्वर स्टेटस बॉक्स */
         .server-status {
             text-align: center;
             font-size: 0.85rem;
@@ -79,28 +77,12 @@
         button:active { opacity: 0.7; }
         button:disabled { background-color: #555; color: #888; }
         
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .tab-btn {
-            background-color: var(--card-bg);
-            color: var(--text-main);
-            border: 1px solid var(--border);
-            flex: 1;
-        }
-        
-        .tab-btn.active {
-            background-color: var(--accent);
-            color: #000;
-            border-color: var(--accent);
-        }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { background-color: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); flex: 1; }
+        .tab-btn.active { background-color: var(--accent); color: #000; border-color: var(--accent); }
         
         .hidden { display: none; }
         .loader { text-align: center; font-size: 0.9rem; color: var(--accent); margin-top: -10px; margin-bottom: 15px; display: none; }
-        
         audio { width: 100%; margin-top: 10px; border-radius: 8px; }
     </style>
 </head>
@@ -108,9 +90,9 @@
 
     <h2>AI Studio Mobile</h2>
 
-    <!-- सर्वर स्टेटस डिस्प्ले -->
+    <!-- Server Test Link -->
     <div class="server-status">
-        🟢 Server Live: <a href="https://aryannewstech.babu902654.workers.dev" target="_blank">aryannewstech...workers.dev</a>
+        🟢 Server Status: <a href="https://aryannewstech.babu902654.workers.dev/" target="_blank">Click Here to Test Server</a>
     </div>
 
     <!-- Tabs -->
@@ -123,7 +105,12 @@
     <div id="script-module" class="card">
         <label>AI Model</label>
         <select id="modelSelect">
-            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+            <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash</option>
+            <option value="meta-llama/llama-3-8b-instruct">Llama 3 8B (Meta)</option>
+            <option value="meta-llama/llama-3-70b-instruct">Llama 3 70B (Meta)</option>
+            <option value="mistralai/mistral-7b-instruct">Mistral 7B (Mistral AI)</option>
+            <option value="qwen/qwen-2-72b-instruct">Qwen 2 72B (Alibaba)</option>
+            <option value="google/gemma-7b-it">Gemma 7B (Google)</option>
         </select>
 
         <label>Topic / Master Prompt</label>
@@ -168,7 +155,7 @@
     </div>
 
     <script>
-        // आपका नया Cloudflare Worker URL
+        // आपका Cloudflare Worker URL
         const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
 
         function switchTab(tab) {
@@ -202,9 +189,7 @@
             try {
                 const response = await fetch(`${WORKER_URL}/v1/chat/completions`, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         model: model,
                         messages: [{ role: "user", content: prompt }]
@@ -214,12 +199,17 @@
                 const data = await response.json();
                 
                 if (!response.ok || data.error) {
-                    throw new Error(data.error?.message || `API Error (${response.status})`);
+                    throw new Error(data.error?.message || data.error || `API Error (${response.status})`);
                 }
                 
                 output.value = data.choices[0].message.content;
             } catch (error) {
-                output.value = "⚠️ Error: " + error.message;
+                // इंटरनेट या VPN ब्लॉक होने पर एरर मैसेज
+                if (error.message.includes("Failed to fetch")) {
+                    output.value = "⚠️ Error: Failed to fetch.\n\nकारण: आपका इंटरनेट प्रोवाइडर Cloudflare Workers को ब्लॉक कर रहा है।\n\nसॉल्यूशन: होम स्क्रीन पर दिए गए 'Click Here to Test Server' लिंक पर क्लिक करके चेक करें। अगर साइट नहीं खुलती है, तो कोई भी VPN चालू करके दोबारा ट्राई करें।";
+                } else {
+                    output.value = "⚠️ Error: " + error.message;
+                }
             } finally {
                 btn.disabled = false;
                 loader.style.display = "none";
@@ -244,9 +234,7 @@
             try {
                 const response = await fetch(`${WORKER_URL}/v1/audio/speech`, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         model: model,
                         input: text,
@@ -256,7 +244,7 @@
 
                 if (!response.ok) {
                     const errData = await response.json();
-                    throw new Error(errData.error?.message || "Failed to generate audio");
+                    throw new Error(errData.error?.message || errData.error || "Failed to generate audio");
                 }
 
                 const blob = await response.blob();
@@ -266,7 +254,11 @@
                 audioPlayer.play();
 
             } catch (error) {
-                alert("Error: " + error.message);
+                if (error.message.includes("Failed to fetch")) {
+                    alert("⚠️ Network Error: आपका इंटरनेट प्रोवाइडर API को ब्लॉक कर रहा है। कृपया VPN इस्तेमाल करके देखें।");
+                } else {
+                    alert("Error: " + error.message);
+                }
             } finally {
                 btn.disabled = false;
                 loader.style.display = "none";
