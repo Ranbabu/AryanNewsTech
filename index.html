@@ -80,7 +80,6 @@
         .btn-group { display: flex; gap: 10px; margin-top: 5px; }
         .btn-secondary { background-color: #444; color: #fff; }
         .btn-copy { background-color: #007bff; color: #fff; }
-        .btn-stop { background-color: #ff4d4d; color: #fff; }
 
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { background-color: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); flex: 1; }
@@ -136,26 +135,24 @@
 
     <!-- MODULE 2: Text-to-Speech -->
     <div id="tts-module" class="card hidden">
+        <label>Voice Model</label>
+        <select id="ttsModel">
+            <option value="xkiro-voice">xKiro Voice AI</option>
+        </select>
+
+        <label>Custom Voice ID (Leave blank for default)</label>
+        <!-- xKiro डैशबोर्ड से हिंदी वॉयस ID यहाँ टाइप कर सकते हैं -->
+        <input type="text" id="customVoice" placeholder="e.g. hi-IN-1 या hindi-male">
+
         <label>Text to Speak</label>
-        <textarea id="ttsInput" placeholder="यहाँ वह न्यूज़ स्क्रिप्ट पेस्ट करें जिसे आवाज़ में बदलना है..."></textarea>
+        <textarea id="ttsInput" placeholder="यहाँ वह टेक्स्ट पेस्ट करें जिसे आवाज़ में बदलना है..."></textarea>
 
-        <!-- Google Mobile Voice (New & Best Feature) -->
-        <div class="btn-group" style="margin-bottom: 20px;">
-            <button onclick="playGoogleVoice()" style="background-color: var(--accent); color: black;">▶️ Play Hindi Voice (Free)</button>
-            <button class="btn-stop" onclick="stopGoogleVoice()" style="flex: 0.5;">⏹️ Stop</button>
-        </div>
+        <button id="ttsBtn" onclick="generateSpeech()">Generate Audio</button>
+        <div id="ttsLoader" class="loader">Generating Audio... Please wait.</div>
 
-        <div style="border-top: 1px solid #333; margin-top: 15px; padding-top: 15px;">
-            <label style="color: #ff9900;">⚠️ xKiro API Voice (MP3 Download) - May not work without paid plan</label>
-            <input type="text" id="customVoice" placeholder="Voice ID (e.g., hi-IN-1)" style="margin-top: 10px;">
-            
-            <button id="ttsBtn" class="btn-secondary" onclick="generateSpeech()">Generate MP3 from xKiro</button>
-            <div id="ttsLoader" class="loader">Generating Audio... Please wait.</div>
-
-            <div id="audioContainer" class="hidden">
-                <label style="margin-top: 15px;">Your Audio</label>
-                <audio id="audioPlayer" controls></audio>
-            </div>
+        <div id="audioContainer" class="hidden">
+            <label style="margin-top: 15px;">Your Audio</label>
+            <audio id="audioPlayer" controls></audio>
         </div>
     </div>
 
@@ -172,6 +169,7 @@
             document.getElementById(`tab-${tab}`).classList.add('active');
         }
 
+        // नई कॉपी स्क्रिप्ट फंक्शन
         function copyScript() {
             const script = document.getElementById('scriptOutput');
             if(script.value.trim() === "") return alert("कॉपी करने के लिए कोई स्क्रिप्ट नहीं है!");
@@ -191,6 +189,7 @@
             let customModelInput = document.getElementById('customModel').value.trim();
             let finalModel = customModelInput ? customModelInput : document.getElementById('modelSelect').value;
 
+            // छिपी हुई कमांड ताकि AI क्लीन टेक्स्ट दे
             const basePrompt = document.getElementById('promptInput').value;
             const hiddenInstructions = "\n\nमहत्वपूर्ण निर्देश: पूरी स्क्रिप्ट बिल्कुल क्लीन प्लेन टेक्स्ट (Plain Text) में होनी चाहिए। किसी भी तरह के स्टार (**), बुलेट पॉइंट, डॉट या हैश (#) का इस्तेमाल बिल्कुल न करें। इसे सीधा एक न्यूज़ एंकर के पढ़ने के लिए साफ़ पैराग्राफ फॉर्मेट में दें।";
             const finalPrompt = basePrompt + hiddenInstructions;
@@ -219,52 +218,29 @@
                     throw new Error(data.error?.message || data.error || `API Error (${response.status})`);
                 }
                 
+                // रिस्पांस से अगर फिर भी कुछ स्टार आ जाएँ तो उसे JavaScript से रिमूव कर रहे हैं
                 let cleanScript = data.choices[0].message.content;
-                cleanScript = cleanScript.replace(/\*/g, '').replace(/#/g, ''); 
+                cleanScript = cleanScript.replace(/\*/g, ''); 
+                cleanScript = cleanScript.replace(/#/g, ''); 
+                
                 output.value = cleanScript.trim();
             } catch (error) {
-                if (error.message.includes("Failed to fetch")) {
-                    output.value = "⚠️ Error: Failed to fetch.\n\nकारण: आपका इंटरनेट प्रोवाइडर ब्लॉक कर रहा है। होम स्क्रीन पर दिए लिंक से सर्वर टेस्ट करें या VPN लगाएं।";
-                } else {
-                    output.value = "⚠️ Error: " + error.message;
-                }
+                output.value = "⚠️ Error: " + error.message;
             } finally {
                 btn.disabled = false;
                 loader.style.display = "none";
             }
         }
 
-        // --- NEW GOOGLE MOBILE NATIVE VOICE ---
-        function playGoogleVoice() {
-            const text = document.getElementById('ttsInput').value.trim();
-            if (!text) return alert("कृपया प्ले करने के लिए स्क्रिप्ट डालें!");
-
-            window.speechSynthesis.cancel(); // Stop any currently playing audio
-            
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'hi-IN'; // Set to Hindi
-            utterance.rate = 0.9; // News Anchor Speed (slightly slow and clear)
-            utterance.pitch = 1.0; 
-
-            // Trying to find a premium Hindi Voice installed on the mobile device
-            const voices = window.speechSynthesis.getVoices();
-            const hindiVoice = voices.find(v => v.lang === 'hi-IN' || v.lang.includes('hi'));
-            if (hindiVoice) utterance.voice = hindiVoice;
-
-            window.speechSynthesis.speak(utterance);
-        }
-
-        function stopGoogleVoice() {
-            window.speechSynthesis.cancel();
-        }
-
-        // --- OLD xKIRO MP3 VOICE ---
         async function generateSpeech() {
             const text = document.getElementById('ttsInput').value;
-            if (!text) return alert("टेक्स्ट डालें!");
-            
+            if (!text) return alert("कृपया जनरेट करने के लिए टेक्स्ट डालें!");
+
+            const model = document.getElementById('ttsModel').value;
             let voice = document.getElementById('customVoice').value.trim();
-            if (!voice) return alert("कृपया xKiro डैशबोर्ड से Voice ID डालें!");
+            
+            // अगर कस्टम वॉयस खाली है तो एक डिफ़ॉल्ट वैल्यू भेजेंगे
+            if (!voice) voice = "alloy"; 
 
             const btn = document.getElementById('ttsBtn');
             const loader = document.getElementById('ttsLoader');
@@ -279,21 +255,26 @@
                 const response = await fetch(`${WORKER_URL}/v1/audio/speech`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ model: "xkiro-voice", input: text, voice: voice })
+                    body: JSON.stringify({
+                        model: model,
+                        input: text,
+                        voice: voice
+                    })
                 });
 
                 if (!response.ok) {
                     const errData = await response.json();
-                    throw new Error(errData.error?.message || "Failed to generate MP3");
+                    throw new Error(errData.error?.message || errData.error || "Failed to generate audio");
                 }
 
                 const blob = await response.blob();
                 const audioUrl = URL.createObjectURL(blob);
                 audioPlayer.src = audioUrl;
                 audioContainer.classList.remove('hidden');
+                audioPlayer.play();
 
             } catch (error) {
-                alert("Error: " + error.message);
+                alert("Error: " + error.message + "\n\nटिप: अगर वॉयस का एरर आ रहा है, तो xKiro डैशबोर्ड से 'Voice ID' चेक करें और उसे Custom Voice Box में डालें।");
             } finally {
                 btn.disabled = false;
                 loader.style.display = "none";
