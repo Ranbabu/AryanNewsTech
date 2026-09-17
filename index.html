@@ -78,9 +78,9 @@
 
     <label>Voice (आवाज़ चुनें – असली xKiro catalog)</label>
     <select id="voiceSelect"></select>
-    <p class="hint">💡 xKiro के 145 voices के कैटलॉग में Hindi-नाम वाली voice नहीं है। Hindi टेक्स्ट के लिए "Auto (Model Default)" सबसे बेस्ट है — मॉडल हिंदी को multilingual मोड में बोलता है। News anchor स्टाइल के लिए Male Narrator / Serious Male आज़माएँ।</p>
+    <p class="hint">💡 xKiro के 145 voices में Hindi-नाम वाली voice नहीं है। Hindi टेक्स्ट के लिए "Auto Voice (Model Default)" सबसे बेस्ट है — मॉडल multilingual mode में हिंदी बोलता है। News anchor feel के लिए "Male Narrator" आज़माएँ।</p>
 
-    <label>Custom Voice ID (Optional – ऊपर वाला override होगा)</label>
+    <label>Custom Voice ID (Optional)</label>
     <input type="text" id="customVoice" placeholder="e.g. male-narrator / charming-female">
 
     <label>Speed: <span id="speedVal">1.0</span>x</label>
@@ -105,7 +105,7 @@
 <div id="thumb-module" class="card hidden">
     <label>🎨 Image Engine</label>
     <input type="text" value="sensenova/sensenova-u1.5-lite (xKiro FREE tier)" disabled>
-    <p class="hint">💡 यह xKiro का FREE text-to-image model है। Generation asynchronous job है — 30 सेकंड से कुछ मिनट लग सकते हैं, पेज बंद न करें।</p>
+    <p class="hint">💡 यह xKiro का FREE text-to-image model है। यह async job है — 30 सेकंड से कुछ मिनट लग सकते हैं, पेज बंद न करें।</p>
 
     <label>Thumbnail Style</label>
     <select id="thumbStyle">
@@ -138,12 +138,12 @@
 
 <script>
 const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
-const TTS_MODEL = "xkiro-voice";                 // xKiro का एकमात्र TTS मॉडल (FREE allowance)
-const IMG_MODEL = "sensenova/sensenova-u1.5-lite"; // xKiro का FREE image मॉडल
+const TTS_MODEL = "xkiro-voice";
+const IMG_MODEL = "sensenova/sensenova-u1.5-lite";
 let currentImageUrl = null;
 let currentAudioUrl = null;
 
-/* ---------- Fallback voice list (xKiro के असली catalog से, सिर्फ़ non-VIP/free voices) ---------- */
+/* Fallback voice list (live fetch fail होने पर) */
 const FALLBACK_VOICES = [
     ["", "🤖 Auto Voice (Model Default – Hindi के लिए recommended)"],
     ["male-narrator", "Male Narrator (News Anchor style)"],
@@ -159,14 +159,9 @@ const FALLBACK_VOICES = [
     ["male-voice", "Male Voice"],
     ["female-voice", "Female Voice"],
     ["normal-male", "Normal Male"],
-    ["normal-female", "Normal Female"],
-    ["american-male", "American Male"],
-    ["american-female", "American Female"],
-    ["british-male", "British Male"],
-    ["british-female", "British Female"]
+    ["normal-female", "Normal Female"]
 ];
 
-/* ---------- Thumbnail स्टाइल डिस्क्रिप्शन ---------- */
 const THUMB_STYLES = {
     news:  "breaking news TV broadcast look, red breaking-news lower-third banner, modern news studio, dramatic red and blue studio lighting, photo-realistic",
     tech:  "tech review YouTube thumbnail style, dark background with neon blue and purple glow, floating gadgets and holographic UI elements",
@@ -177,7 +172,6 @@ const THUMB_STYLES = {
     custom:""
 };
 
-/* ================= TAB SWITCH ================= */
 function switchTab(tab) {
     ['script','tts','thumb'].forEach(t => {
         document.getElementById(t + '-module').classList.add('hidden');
@@ -187,7 +181,6 @@ function switchTab(tab) {
     document.getElementById('tab-' + tab).classList.add('active');
 }
 
-/* ================= SCRIPT MODULE ================= */
 function copyScript() {
     const script = document.getElementById('scriptOutput');
     if (script.value.trim() === "") return alert("कॉपी करने के लिए कोई स्क्रिप्ट नहीं है!");
@@ -201,6 +194,7 @@ function copyToTTS() {
     document.getElementById('ttsInput').value = script;
     switchTab('tts');
 }
+
 async function generateScript() {
     let customModelInput = document.getElementById('customModel').value.trim();
     let finalModel = customModelInput ? customModelInput : document.getElementById('modelSelect').value;
@@ -229,8 +223,7 @@ async function generateScript() {
     }
 }
 
-/* ================= VOICE (TTS) MODULE – xKiro xkiro-voice ================= */
-/* लाइव xKiro voice catalog लोड करें (/v1/audio/voices public endpoint), फेल हो तो fallback list */
+/* Voice dropdown — live xKiro catalog से भरें, fail हो तो fallback */
 async function populateVoices() {
     const vs = document.getElementById('voiceSelect');
     vs.innerHTML = "";
@@ -239,7 +232,7 @@ async function populateVoices() {
         const r = await fetch(`${WORKER_URL}/v1/audio/voices?limit=200`);
         if (!r.ok) throw new Error("voices fetch failed");
         const d = await r.json();
-        const list = (d.voices || []).filter(v => !v.isVip);   // सिर्फ़ free (non-VIP) voices
+        const list = (d.voices || []).filter(v => !v.isVip);
         if (!list.length) throw new Error("empty list");
         vs.innerHTML = "";
         vs.add(new Option("🤖 Auto Voice (Model Default – Hindi के लिए recommended)", ""));
@@ -253,13 +246,10 @@ async function populateVoices() {
 async function generateSpeech() {
     const text = document.getElementById('ttsInput').value;
     if (!text.trim()) return alert("कृपया जनरेट करने के लिए टेक्स्ट डालें!");
-
     const speed = parseFloat(document.getElementById('speedRange').value);
     const voice = document.getElementById('customVoice').value.trim() || document.getElementById('voiceSelect').value;
-
     const body = { model: TTS_MODEL, input: text, response_format: "mp3", speed: speed };
-    if (voice) body.voice = voice;   // खाली = model default voice (Hindi के लिए best)
-
+    if (voice) body.voice = voice;
     const btn = document.getElementById('ttsBtn');
     const loader = document.getElementById('ttsLoader');
     const audioContainer = document.getElementById('audioContainer');
@@ -268,7 +258,6 @@ async function generateSpeech() {
     loader.style.display = "block";
     loader.textContent = "Generating Audio... Please wait.";
     audioContainer.classList.add('hidden');
-
     try {
         const response = await fetch(`${WORKER_URL}/v1/audio/speech`, {
             method: "POST",
@@ -287,7 +276,7 @@ async function generateSpeech() {
         audioContainer.classList.remove('hidden');
         audioPlayer.play().catch(() => {});
     } catch (error) {
-        alert("⚠️ TTS Error: " + error.message + "\n\nटिप: Voice dropdown से 'Auto Voice (Model Default)' चुनें — यही Hindi टेक्स्ट के लिए सबसे सुरक्षित विकल्प है।");
+        alert("⚠️ TTS Error: " + error.message + "\n\nटिप: Voice dropdown से 'Auto Voice (Model Default)' चुनें — यही Hindi टेक्स्ट के लिए सबसे सुरक्षित है।");
     } finally {
         btn.disabled = false;
         loader.style.display = "none";
@@ -304,7 +293,6 @@ function downloadAudio() {
     a.remove();
 }
 
-/* ================= THUMBNAIL MODULE – xKiro async image job ================= */
 function buildThumbPrompt() {
     const styleKey = document.getElementById('thumbStyle').value;
     const styleDesc = THUMB_STYLES[styleKey] || "";
@@ -325,37 +313,30 @@ async function generateThumbnail() {
     const loader = document.getElementById('thumbLoader');
     const result = document.getElementById('thumbResult');
     const img = document.getElementById('thumbImg');
-
     btn.disabled = true;
     loader.style.display = "block";
     loader.textContent = "Image job बनाया जा रहा है...";
     result.classList.add('hidden');
-
     try {
-        /* 1) job बनाएँ – POST /v1/images/generations (202 Accepted) */
+        /* 1) POST /v1/images/generations — job create */
         const r1 = await fetch(`${WORKER_URL}/v1/images/generations`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ model: IMG_MODEL, prompt: prompt, n: 1, size: "1280x720" })
         });
         const job = await r1.json();
-        if (!r1.ok || !job.id) {
-            throw new Error(job.error?.message || job.error || `Job create नहीं हुआ (HTTP ${r1.status})`);
-        }
+        if (!r1.ok || !job.id) throw new Error(job.error?.message || job.error || `Job create नहीं हुआ (HTTP ${r1.status})`);
 
-        /* 2) job poll करें – GET /v1/images/generations/{id} */
-        const deadline = Date.now() + 5 * 60 * 1000;   // अधिकतम 5 मिनट
+        /* 2) Poll GET /v1/images/generations/{id} — status check */
+        const deadline = Date.now() + 5 * 60 * 1000;
         let waitMs = 3000;
         let imageUrl = null;
-
         while (Date.now() < deadline) {
             await sleep(waitMs);
             waitMs = Math.min(waitMs * 1.5, 10000);
             loader.textContent = "🎨 Image बन रही है... इंतज़ार करें (30 सेकंड–कुछ मिनट)";
-
             const r2 = await fetch(`${WORKER_URL}/v1/images/generations/${job.id}`);
             const st = await r2.json();
-
             if (st.status === "succeeded") {
                 imageUrl = st.data && st.data[0] && st.data[0].url;
                 break;
@@ -370,14 +351,13 @@ async function generateThumbnail() {
         img.src = imageUrl;
         result.classList.remove('hidden');
     } catch (error) {
-        alert("⚠️ Thumbnail Error: " + error.message + "\n\nटिप: Worker में /v1/images/generations route होना ज़रूरी है (नया Worker कोड डिप्लॉय करें)।");
+        alert("⚠️ Thumbnail Error: " + error.message + "\n\nटिप: नया Worker कोड डिप्लॉय किया है ना? Dynamic /v1/ routing ज़रूरी है।");
     } finally {
         btn.disabled = false;
         loader.style.display = "none";
     }
 }
 
-/* इमेज को canvas पर 1280x720 (cover-crop) बनाकर डाउनलोड */
 function downloadImage(forceResize) {
     if (!currentImageUrl) return alert("पहले थंबनेल जनरेट करें!");
     const finish = (url, name) => {
@@ -416,7 +396,6 @@ function downloadImage(forceResize) {
     im.src = currentImageUrl;
 }
 
-/* शुरूआत में voice dropdown भरें (लाइव xKiro catalog) */
 populateVoices();
 </script>
 </body>
