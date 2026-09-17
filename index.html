@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AI News Studio Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@800;900&display=swap" rel="stylesheet">
 <style>
     :root { --bg-color:#121212; --card-bg:#1e1e1e; --text-main:#ffffff; --accent:#00d26a; --border:#333333; }
     body { font-family: system-ui, -apple-system, sans-serif; background-color:var(--bg-color); color:var(--text-main); margin:0; padding:15px; }
@@ -26,7 +29,6 @@
     .hidden { display:none; }
     .hint { font-size:0.75rem; color:#888; margin-top:-10px; margin-bottom:12px; }
     #thumbImg { width:100%; border-radius:8px; border:1px solid var(--border); margin-bottom:10px; display:block; }
-    /* स्पिनर + टाइमर */
     .spin-row { display:flex; align-items:center; justify-content:center; gap:10px; margin:-5px 0 15px; }
     .spinner { width:22px; height:22px; border:3px solid #333; border-top-color:var(--accent); border-radius:50%; animation:spin 0.9s linear infinite; flex:none; }
     @keyframes spin { to { transform:rotate(360deg); } }
@@ -64,7 +66,7 @@
     <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज़ टेक। आज की टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज़ एंकर के पढ़ने के अंदाज़ में लिखें।</textarea>
 
     <button id="generateBtn" onclick="generateScript()">Generate Script</button>
-    <div id="scriptLoader" class="loader" style="display:none; text-align:center; color:var(--accent); font-size:0.9rem; margin:-10px 0 15px;">Generating... Please wait.</div>
+    <div id="scriptLoader" style="display:none; text-align:center; color:var(--accent); font-size:0.9rem; margin:-10px 0 15px;">Generating... Please wait.</div>
 
     <label style="margin-top:15px;">Output Script</label>
     <textarea id="scriptOutput" placeholder="Your generated script will appear here..."></textarea>
@@ -74,11 +76,11 @@
     </div>
 </div>
 
-<!-- ========== MODULE 2: THUMBNAIL (सिर्फ़ prompt paste box + spinner + timer) ========== -->
+<!-- ========== MODULE 2: THUMBNAIL ========== -->
 <div id="thumb-module" class="card hidden">
     <label>🎨 Image Engine</label>
-    <input type="text" value="sensenova/sensenova-u1.5-lite (xKiro FREE tier)" disabled>
-    <p class="hint">💡 नीचे पूरा प्रॉम्प्ट-ब्लॉक पेस्ट करें (Keyword / Text / Concept / Prompt) — कोड अपने आप पहचान लेगा। Image बनने तक स्पिनर और टाइमर चलता रहेगा।</p>
+    <input type="text" value="sensenova/sensenova-u1.5-lite (xKiro FREE) + Hindi Text Overlay" disabled>
+    <p class="hint">💡 प्रॉम्प्ट-ब्लॉक पेस्ट करें (Keyword / Text / Concept / Prompt)। Hindi वाली "Text:" लाइन को AI को नहीं भेजा जाएगा — वह असली Devanagari फॉन्ट के साथ इमेज पर सही-सही लिखी जाएगी। स्पिनर और टाइमर सिर्फ़ बटन दबाने पर चलते हैं।</p>
 
     <label>Prompt Paste Box</label>
     <textarea id="promptBox" style="min-height:170px;" placeholder="Keyword: UPI Tap & Pay&#10;Text: UPI क्रांति! नए फीचर!&#10;Concept: Dynamic, futuristic, showing a hand tapping a phone on a POS machine, with digital payment graphics and a sense of speed.&#10;Prompt: A high-angle, cinematic, photorealistic image of a hand holding a modern smartphone, gently tapping it against a sleek, futuristic POS machine at a retail counter. Digital payment transaction graphics, glowing lines, and binary code subtly emanate from the phone and POS. The background is a slightly blurred, modern, bustling Indian market or store. Emphasize a sense of speed, ease, and advanced technology. The lighting is vibrant and dynamic, with a shallow depth of field. 16:9 aspect ratio."></textarea>
@@ -103,8 +105,8 @@
 
 <script>
 const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
-const IMG_MODEL  = "sensenova/sensenova-u1.5-lite";  // xKiro FREE image model
-const IMG_SIZE   = "1792x1024";                      // xKiro supported 16:9 size
+const IMG_MODEL  = "sensenova/sensenova-u1.5-lite";
+const IMG_SIZE   = "1792x1024";
 let currentImageUrl = null;
 
 /* ================= TAB SWITCH ================= */
@@ -125,7 +127,6 @@ function copyScript() {
     document.execCommand("copy");
     alert("✅ स्क्रिप्ट कॉपी हो गई!");
 }
-
 async function generateScript() {
     let customModelInput = document.getElementById('customModel').value.trim();
     let finalModel = customModelInput ? customModelInput : document.getElementById('modelSelect').value;
@@ -154,53 +155,55 @@ async function generateScript() {
     }
 }
 
-/* ================= PROMPT PARSER (Demo फॉर्मेट पहचान) ================= */
+/* ================= PROMPT PARSER — Hindi टेक्स्ट overlay के लिए अलग ================= */
+const hasDev = s => /[\u0900-\u097F]/.test(s);
 function parsePromptBlock(raw) {
     const mK = raw.match(/Keyword:\s*(.+)/i);
     const mT = raw.match(/Text:\s*(.+)/i);
     const mC = raw.match(/Concept:\s*(.+)/i);
     const mP = raw.match(/Prompt:\s*([\s\S]+)/i);
-    let prompt = mP ? mP[1].trim() : raw.trim();
-    prompt = prompt.replace(/\s+/g, " ");
+    let prompt = (mP ? mP[1] : raw).replace(/\s+/g, " ").trim();
+    let overlay = "";
     let final = "";
-    if (mC) final += mC[1].trim().replace(/\s+/g, " ") + ". ";
+    if (mC) final += mC[1].replace(/\s+/g, " ").trim() + ". ";
     final += prompt;
-    if (mT) final += `. Large bold headline text written exactly and correctly: "${mT[1].trim()}", text clearly readable, high contrast outline on text`;
-    if (mK) final += `. Main theme keyword: ${mK[1].trim()}`;
-    final += ". YouTube thumbnail, wide 16:9 composition, highly detailed, vibrant colors, dramatic professional lighting, sharp focus, no watermark, no logo.";
-    return final;
+    if (mT) {
+        const t = mT[1].trim();
+        if (hasDev(t)) overlay = t;                                   // Hindi → canvas overlay (सही स्पेलिंग)
+        else final += `. Large bold headline text written exactly and correctly: "${t}", text clearly readable, high contrast outline on text`;
+    }
+    if (mK) {
+        const k = mK[1].trim();
+        if (hasDev(k)) overlay = overlay ? overlay + " | " + k : k;
+        else final += `. Small badge text written exactly: "${k}"`;
+    }
+    final += ". Absolutely NO Devanagari or Hindi characters anywhere in the image; keep the upper-left area as a clean, simple, uncluttered background space because a headline will be added later. YouTube thumbnail, wide 16:9 composition, highly detailed, vibrant colors, dramatic professional lighting, sharp focus, no watermark, no logo.";
+    return { prompt: final, overlay };
 }
 
-/* ================= SPINNER + TIMER ================= */
+/* ================= SPINNER + TIMER (सिर्फ़ बटन पर शुरू, पूरा होते ही बंद) ================= */
 let timerInterval = null, startTime = 0;
 function fmtClock(ms) {
     const s = Math.floor(ms / 1000);
-    const mm = String(Math.floor(s / 60)).padStart(2, "0");
-    const ss = String(s % 60).padStart(2, "0");
-    return `⏱️ ${mm}:${ss}`;
+    return `⏱️ ${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 function fmtHuman(ms) {
     const s = Math.round(ms / 1000);
-    if (s < 60) return `${s} सेकंड`;
-    return `${Math.floor(s / 60)} मिनट ${s % 60} सेकंड`;
+    return s < 60 ? `${s} सेकंड` : `${Math.floor(s / 60)} मिनट ${s % 60} सेकंड`;
 }
 function startTimer() {
+    stopTimer();
     startTime = Date.now();
     document.getElementById('timerText').textContent = fmtClock(0);
     timerInterval = setInterval(() => {
         document.getElementById('timerText').textContent = fmtClock(Date.now() - startTime);
     }, 1000);
 }
-function stopTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = null;
-}
-function setStatus(msg) {
-    document.getElementById('statusText').textContent = msg;
-}
+function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
+function setStatus(msg) { document.getElementById('statusText').textContent = msg; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* ================= IMAGE JOB (स्मार्ट retry के साथ) ================= */
+/* ================= IMAGE JOB ================= */
 async function createImageJob(prompt) {
     let lastErr = null;
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -213,7 +216,6 @@ async function createImageJob(prompt) {
             const job = await r1.json();
             if (!r1.ok || !job.id) {
                 const msg = job.error?.message || job.error || `Job create नहीं हुआ (HTTP ${r1.status})`;
-                // 4xx = पक्की गलती (retry बेकार), 5xx/नेटवर्क = retry करो
                 if (r1.status >= 400 && r1.status < 500) throw new Error(msg);
                 throw Object.assign(new Error(msg), { retryable: true });
             }
@@ -227,16 +229,15 @@ async function createImageJob(prompt) {
     }
     throw lastErr;
 }
-
 async function pollImageJob(id) {
-    const deadline = Date.now() + 8 * 60 * 1000;   // स्लो मॉडल के लिए 8 मिनट तक धैर्य
-    let waitMs = 2000;                             // तेज़ शुरुआत
+    const deadline = Date.now() + 8 * 60 * 1000;
+    let waitMs = 2000;
     while (Date.now() < deadline) {
         await sleep(waitMs);
         waitMs = Math.min(waitMs * 1.4, 8000);
         setStatus("🎨 Image render हो रही है... कतार में लगी है");
         let st = null;
-        for (let attempt = 0; attempt < 3 && !st; attempt++) {   // polling नेटवर्क retry
+        for (let attempt = 0; attempt < 3 && !st; attempt++) {
             try {
                 const r2 = await fetch(`${WORKER_URL}/v1/images/generations/${id}`);
                 st = await r2.json();
@@ -244,22 +245,80 @@ async function pollImageJob(id) {
         }
         if (!st) continue;
         if (st.status === "succeeded") return st.data && st.data[0] && st.data[0].url;
-        if (st.status === "failed" || st.status === "blocked") {
-            throw new Error(st.error?.message || ("Job " + st.status));
-        }
+        if (st.status === "failed" || st.status === "blocked") throw new Error(st.error?.message || ("Job " + st.status));
         setStatus("🎨 Image render हो रही है... (" + st.status + ")");
     }
     throw new Error("Image job 8 मिनट में पूरा नहीं हुआ — दोबारा कोशिश करें");
+}
+
+/* ================= HINDI TEXT OVERLAY (असली Devanagari फॉन्ट — 100% सही स्पेलिंग) ================= */
+async function ensureFont() {
+    try {
+        await document.fonts.load('900 100px "Noto Sans Devanagari"');
+        await document.fonts.ready;
+    } catch (e) {}
+}
+function loadImg(src) {
+    return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+}
+function wrapText(ctx, text, maxWidth) {
+    const words = text.split(/\s+/);
+    const lines = []; let line = "";
+    for (const w of words) {
+        const test = line ? line + " " + w : w;
+        if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; }
+        else line = test;
+    }
+    if (line) lines.push(line);
+    return lines;
+}
+function drawHindiOverlay(imgEl, text) {
+    const W = imgEl.naturalWidth, H = imgEl.naturalHeight;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(imgEl, 0, 0, W, H);
+    const maxW = W * 0.60;
+    let size = Math.round(H * 0.15);
+    let lines = [];
+    while (size > Math.round(H * 0.06)) {
+        ctx.font = `900 ${size}px "Noto Sans Devanagari", "Noto Sans", sans-serif`;
+        lines = wrapText(ctx, text, maxW);
+        if (lines.length * size * 1.25 <= H * 0.45) break;
+        size -= 4;
+    }
+    const lh = size * 1.25;
+    let y = H * 0.06;
+    const x = W * 0.045;
+    ctx.textBaseline = "top";
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+    for (const ln of lines) {
+        ctx.strokeStyle = "rgba(0,0,0,0.95)";
+        ctx.lineWidth = size * 0.18;
+        ctx.strokeText(ln, x, y);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(ln, x, y);
+        y += lh;
+    }
+    return c.toDataURL("image/png");
+}
+async function fetchImageBytes(u) {
+    try { const r = await fetch(u, { mode: "cors" }); if (r.ok) return await r.blob(); } catch (e) {}
+    try {
+        const r2 = await fetch(`${WORKER_URL}/proxy?url=${encodeURIComponent(u)}`);
+        if (r2.ok) return await r2.blob();
+    } catch (e) {}
+    return null;
 }
 
 /* ================= GENERATE THUMBNAIL ================= */
 async function generateThumbnail() {
     const raw = document.getElementById('promptBox').value.trim();
     if (!raw) return alert("कृपया Prompt Paste Box में प्रॉन्प्ट पेस्ट करें!");
-    const prompt = parsePromptBlock(raw);
+    const { prompt, overlay } = parsePromptBlock(raw);
 
     const btn = document.getElementById('thumbBtn');
-    const status = document.getElementById('genStatus');
+    const statusRow = document.getElementById('genStatus');
     const success = document.getElementById('successMsg');
     const result = document.getElementById('thumbResult');
     const img = document.getElementById('thumbImg');
@@ -267,34 +326,51 @@ async function generateThumbnail() {
     btn.disabled = true;
     result.classList.add('hidden');
     success.classList.add('hidden');
-    status.classList.remove('hidden');
+    statusRow.classList.remove('hidden');
     setStatus("Job बनाया जा रहा है...");
-    startTimer();
+    startTimer();                                  // ⏱️ सिर्फ़ यहाँ (बटन दबाने पर) शुरू
 
     try {
         const job = await createImageJob(prompt);
         setStatus("✅ Job बन गया — image render हो रही है...");
         const url = await pollImageJob(job.id);
         if (!url) throw new Error("Image URL नहीं मिला");
+
+        let finalUrl = url, overlayApplied = false;
+        if (overlay) {
+            setStatus("🖌️ Hindi टेक्स्ट सही फॉन्ट में लिखा जा रहा है...");
+            await ensureFont();
+            const blob = await fetchImageBytes(url);
+            if (blob) {
+                try {
+                    const objUrl = URL.createObjectURL(blob);
+                    const im = await loadImg(objUrl);
+                    finalUrl = drawHindiOverlay(im, overlay);
+                    URL.revokeObjectURL(objUrl);
+                    overlayApplied = true;
+                } catch (e) {}
+            }
+        }
+
         const elapsed = Date.now() - startTime;
         stopTimer();
-        document.getElementById('timerText').textContent = fmtClock(elapsed);
-        status.classList.add('hidden');
-        success.textContent = `✅ Image बन गई! कुल समय: ${fmtHuman(elapsed)}`;
+        statusRow.classList.add('hidden');         // 🛑 पूरा होते ही स्पिनर-टाइमर पूरी तरह छिप गए
+        success.textContent = `✅ Image तैयार! कुल समय: ${fmtHuman(elapsed)}` +
+            (overlay ? (overlayApplied ? " | Hindi टेक्स्ट सही लिखा गया ✅" : " | ⚠️ Hindi overlay लागू नहीं हो सका") : "");
         success.classList.remove('hidden');
-        currentImageUrl = url;
-        img.src = url;
+        currentImageUrl = finalUrl;
+        img.src = finalUrl;
         result.classList.remove('hidden');
     } catch (error) {
         stopTimer();
-        status.classList.add('hidden');
+        statusRow.classList.add('hidden');
         alert("⚠️ Thumbnail Error: " + error.message + "\n(लगा समय: " + fmtHuman(Date.now() - startTime) + ")");
     } finally {
         btn.disabled = false;
     }
 }
 
-/* ================= DOWNLOAD (1280x720 cover-crop) ================= */
+/* ================= DOWNLOAD ================= */
 function downloadImage(forceResize) {
     if (!currentImageUrl) return alert("पहले थंबनेल जनरेट करें!");
     const finish = (url, name) => {
