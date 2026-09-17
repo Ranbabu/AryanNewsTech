@@ -14,7 +14,6 @@
     label { font-size:0.9rem; margin-bottom:5px; display:block; color:#aaa; }
     input, select, textarea { width:100%; padding:12px; margin-bottom:15px; border-radius:8px; border:1px solid var(--border); background-color:var(--bg-color); color:var(--text-main); font-size:1rem; box-sizing:border-box; }
     textarea { resize:vertical; min-height:100px; }
-    input[type="checkbox"] { width:auto; margin:0 8px 0 0; }
     button { width:100%; padding:14px; background-color:var(--accent); color:#000; border:none; border-radius:8px; font-size:1rem; font-weight:bold; cursor:pointer; transition:opacity 0.2s; }
     button:active { opacity:0.7; }
     button:disabled { background-color:#555; color:#888; }
@@ -22,14 +21,18 @@
     .btn-secondary { background-color:#444; color:#fff; }
     .btn-copy { background-color:#007bff; color:#fff; }
     .tabs { display:flex; gap:8px; margin-bottom:20px; }
-    .tab-btn { background-color:var(--card-bg); color:var(--text-main); border:1px solid var(--border); flex:1; font-size:0.85rem; padding:12px 4px; }
+    .tab-btn { background-color:var(--card-bg); color:var(--text-main); border:1px solid var(--border); flex:1; font-size:0.9rem; padding:12px 4px; }
     .tab-btn.active { background-color:var(--accent); color:#000; border-color:var(--accent); }
     .hidden { display:none; }
-    .loader { text-align:center; font-size:0.9rem; color:var(--accent); margin-top:-10px; margin-bottom:15px; display:none; }
-    audio { width:100%; margin-top:10px; border-radius:8px; }
-    #thumbImg { width:100%; border-radius:8px; border:1px solid var(--border); margin-bottom:10px; display:block; }
     .hint { font-size:0.75rem; color:#888; margin-top:-10px; margin-bottom:12px; }
-    .check-row { display:flex; align-items:center; font-size:0.8rem; color:#aaa; margin-bottom:15px; }
+    #thumbImg { width:100%; border-radius:8px; border:1px solid var(--border); margin-bottom:10px; display:block; }
+    /* स्पिनर + टाइमर */
+    .spin-row { display:flex; align-items:center; justify-content:center; gap:10px; margin:-5px 0 15px; }
+    .spinner { width:22px; height:22px; border:3px solid #333; border-top-color:var(--accent); border-radius:50%; animation:spin 0.9s linear infinite; flex:none; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    #statusText { color:#aaa; font-size:0.85rem; }
+    #timerText { font-variant-numeric:tabular-nums; color:var(--accent); font-weight:bold; font-size:0.95rem; }
+    .success-msg { text-align:center; color:var(--accent); font-size:0.9rem; margin:-5px 0 15px; font-weight:bold; }
 </style>
 </head>
 <body>
@@ -42,7 +45,6 @@
 
 <div class="tabs">
     <button class="tab-btn active" id="tab-script" onclick="switchTab('script')">📝 Script</button>
-    <button class="tab-btn" id="tab-tts" onclick="switchTab('tts')">🎙️ Voice</button>
     <button class="tab-btn" id="tab-thumb" onclick="switchTab('thumb')">🎨 Thumbnail</button>
 </div>
 
@@ -62,77 +64,33 @@
     <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज़ टेक। आज की टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज़ एंकर के पढ़ने के अंदाज़ में लिखें।</textarea>
 
     <button id="generateBtn" onclick="generateScript()">Generate Script</button>
-    <div id="scriptLoader" class="loader">Generating... Please wait.</div>
+    <div id="scriptLoader" class="loader" style="display:none; text-align:center; color:var(--accent); font-size:0.9rem; margin:-10px 0 15px;">Generating... Please wait.</div>
 
     <label style="margin-top:15px;">Output Script</label>
     <textarea id="scriptOutput" placeholder="Your generated script will appear here..."></textarea>
 
     <div class="btn-group">
         <button class="btn-copy" onclick="copyScript()">📋 Copy</button>
-        <button class="btn-secondary" onclick="copyToTTS()">Voice AI ➡️</button>
     </div>
 </div>
 
-<!-- ========== MODULE 2: TEXT TO SPEECH (xKiro xkiro-voice) ========== -->
-<div id="tts-module" class="card hidden">
-    <label>🎙️ TTS Engine</label>
-    <input type="text" value="xKiro Voice (xkiro-voice) – FREE" disabled>
-
-    <label>Voice (आवाज़ चुनें – असली xKiro catalog)</label>
-    <select id="voiceSelect"></select>
-
-    <div class="check-row">
-        <input type="checkbox" id="hinglishToggle" checked>
-        <span>Hindi → Hinglish auto-convert (ज़रूरी! xKiro देवनागरी लिपि सपोर्ट नहीं करता)</span>
-    </div>
-    <p class="hint">💡 Hindi स्क्रिप्ट अपने आप phonetic English में बदलेगी (जैसे "नमस्कार" → "Namaskar", "न्यूज़" → "nyooz") और voice साफ़ बोलेगी। News-anchor feel के लिए Male Narrator / Serious Male आज़माएँ।</p>
-
-    <label>Custom Voice ID (Optional)</label>
-    <input type="text" id="customVoice" placeholder="e.g. male-narrator / charming-female">
-
-    <label>Speed: <span id="speedVal">1.0</span>x</label>
-    <input type="range" id="speedRange" min="0.5" max="2" step="0.1" value="1" oninput="document.getElementById('speedVal').innerText=this.value">
-
-    <label>Text to Speak</label>
-    <textarea id="ttsInput" placeholder="यहाँ वह टेक्स्ट पेस्ट करें जिसे आवाज़ में बदलना है..."></textarea>
-
-    <button id="ttsBtn" onclick="generateSpeech()">Generate Audio</button>
-    <div id="ttsLoader" class="loader">Generating Audio... Please wait.</div>
-
-    <div id="audioContainer" class="hidden">
-        <label style="margin-top:15px;">Your Audio</label>
-        <audio id="audioPlayer" controls></audio>
-        <div class="btn-group">
-            <button class="btn-copy" id="dlAudioBtn" onclick="downloadAudio()">⬇️ Download MP3</button>
-        </div>
-    </div>
-</div>
-
-<!-- ========== MODULE 3: THUMBNAIL (xKiro FREE image model) ========== -->
+<!-- ========== MODULE 2: THUMBNAIL (सिर्फ़ prompt paste box + spinner + timer) ========== -->
 <div id="thumb-module" class="card hidden">
     <label>🎨 Image Engine</label>
     <input type="text" value="sensenova/sensenova-u1.5-lite (xKiro FREE tier)" disabled>
-    <p class="hint">💡 Image 1792x1024 (16:9) में बनेगी और डाउनलोड के समय अपने आप 1280x720 कट जाएगी। Async job है — 30 सेकंड से कुछ मिनट लग सकते हैं।</p>
+    <p class="hint">💡 नीचे पूरा प्रॉम्प्ट-ब्लॉक पेस्ट करें (Keyword / Text / Concept / Prompt) — कोड अपने आप पहचान लेगा। Image बनने तक स्पिनर और टाइमर चलता रहेगा।</p>
 
-    <label>Thumbnail Style</label>
-    <select id="thumbStyle">
-        <option value="news" selected>📺 Breaking News (लाल बैनर, TV स्टूडियो)</option>
-        <option value="tech">💻 Tech Review (नीयॉन ब्लू-पर्पल)</option>
-        <option value="gaming">🎮 Gaming (RGB, एक्शन)</option>
-        <option value="crypto">💰 Crypto/Finance (चार्ट, गोल्ड)</option>
-        <option value="vlog">🌍 Vlog/Travel (ब्राइट कलर्स)</option>
-        <option value="edu">🎓 Educational (क्लीन, मिनिमल)</option>
-        <option value="custom">✏️ सिर्फ़ मेरा डिस्क्रिप्शन</option>
-    </select>
-
-    <label>Main Headline Text (थंबनेल पर दिखने वाला बड़ा टेक्स्ट)</label>
-    <input type="text" id="thumbTitle" placeholder="e.g. आज की टॉप 10 खबरें | Aryan News Tech">
-
-    <label>Extra Description / Prompt</label>
-    <textarea id="thumbPrompt">Confident Indian male news anchor in a modern TV studio, breaking news red lower-third banner, glowing screens and world map background, dramatic lighting</textarea>
+    <label>Prompt Paste Box</label>
+    <textarea id="promptBox" style="min-height:170px;" placeholder="Keyword: UPI Tap & Pay&#10;Text: UPI क्रांति! नए फीचर!&#10;Concept: Dynamic, futuristic, showing a hand tapping a phone on a POS machine, with digital payment graphics and a sense of speed.&#10;Prompt: A high-angle, cinematic, photorealistic image of a hand holding a modern smartphone, gently tapping it against a sleek, futuristic POS machine at a retail counter. Digital payment transaction graphics, glowing lines, and binary code subtly emanate from the phone and POS. The background is a slightly blurred, modern, bustling Indian market or store. Emphasize a sense of speed, ease, and advanced technology. The lighting is vibrant and dynamic, with a shallow depth of field. 16:9 aspect ratio."></textarea>
 
     <button id="thumbBtn" onclick="generateThumbnail()">🎨 Generate Thumbnail</button>
-    <div id="thumbLoader" class="loader">Image job शुरू हो रहा है...</div>
+
+    <div id="genStatus" class="spin-row hidden">
+        <div class="spinner"></div>
+        <span id="statusText">Job बनाया जा रहा है...</span>
+        <span id="timerText">⏱️ 00:00</span>
+    </div>
+    <div id="successMsg" class="success-msg hidden"></div>
 
     <div id="thumbResult" class="hidden">
         <img id="thumbImg" alt="YouTube Thumbnail">
@@ -145,44 +103,13 @@
 
 <script>
 const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
-const TTS_MODEL = "xkiro-voice";
-const IMG_MODEL = "sensenova/sensenova-u1.5-lite";
-const IMG_SIZE  = "1792x1024";   // xKiro supported 16:9 size (1280x720 सपोर्ट नहीं है)
+const IMG_MODEL  = "sensenova/sensenova-u1.5-lite";  // xKiro FREE image model
+const IMG_SIZE   = "1792x1024";                      // xKiro supported 16:9 size
 let currentImageUrl = null;
-let currentAudioUrl = null;
-
-/* Fallback voice list (live fetch fail होने पर) */
-const FALLBACK_VOICES = [
-    ["", "🤖 Auto Voice (Model Default – recommended)"],
-    ["male-narrator", "Male Narrator (News Anchor style)"],
-    ["female-storyteller", "Female Storyteller"],
-    ["male-storyteller", "Male Storyteller"],
-    ["narrative-female", "Narrative Female"],
-    ["serious-male", "Serious Male"],
-    ["confident-male", "Confident Male"],
-    ["charming-female", "Charming Female"],
-    ["energetic-male", "Energetic Male"],
-    ["energetic-female", "Energetic Female"],
-    ["deep-male", "Deep Male"],
-    ["male-voice", "Male Voice"],
-    ["female-voice", "Female Voice"],
-    ["normal-male", "Normal Male"],
-    ["normal-female", "Normal Female"]
-];
-
-const THUMB_STYLES = {
-    news:  "breaking news TV broadcast look, red breaking-news lower-third banner, modern news studio, dramatic red and blue studio lighting, photo-realistic",
-    tech:  "tech review YouTube thumbnail style, dark background with neon blue and purple glow, floating gadgets and holographic UI elements",
-    gaming:"gaming YouTube thumbnail style, vibrant RGB neon lights, dynamic action composition, high saturation, epic energy",
-    crypto:"finance and crypto YouTube thumbnail style, green candlestick stock charts, golden coins, dark glossy background",
-    vlog:  "travel vlog thumbnail style, bright sunny colors, candid energetic composition, beautiful scenic background",
-    edu:   "educational documentary thumbnail style, clean minimal layout, subtle diagrams and chalkboard elements, soft lighting",
-    custom:""
-};
 
 /* ================= TAB SWITCH ================= */
 function switchTab(tab) {
-    ['script','tts','thumb'].forEach(t => {
+    ['script','thumb'].forEach(t => {
         document.getElementById(t + '-module').classList.add('hidden');
         document.getElementById('tab-' + t).classList.remove('active');
     });
@@ -198,12 +125,7 @@ function copyScript() {
     document.execCommand("copy");
     alert("✅ स्क्रिप्ट कॉपी हो गई!");
 }
-function copyToTTS() {
-    const script = document.getElementById('scriptOutput').value;
-    if (script.trim() === "") return alert("पहले स्क्रिप्ट जनरेट करें!");
-    document.getElementById('ttsInput').value = script;
-    switchTab('tts');
-}
+
 async function generateScript() {
     let customModelInput = document.getElementById('customModel').value.trim();
     let finalModel = customModelInput ? customModelInput : document.getElementById('modelSelect').value;
@@ -232,172 +154,53 @@ async function generateScript() {
     }
 }
 
-/* ================= TEXT CLEANER + HINGLISH TRANSLITERATOR ================= */
-/* emoji, markdown, अजीब symbols हटाएँ — वरना speech engine reject करता है */
-function cleanText(t) {
-    t = t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{2000}-\u{206F}]/gu, " ");
-    t = t.replace(/[*#_`|~<>\[\]{}=\\^°•●◆♦►→←↑↓"/]/g, " ");
-    t = t.replace(/[-–—]/g, ", ");
-    t = t.replace(/\s+/g, " ").trim();
-    return t;
+/* ================= PROMPT PARSER (Demo फॉर्मेट पहचान) ================= */
+function parsePromptBlock(raw) {
+    const mK = raw.match(/Keyword:\s*(.+)/i);
+    const mT = raw.match(/Text:\s*(.+)/i);
+    const mC = raw.match(/Concept:\s*(.+)/i);
+    const mP = raw.match(/Prompt:\s*([\s\S]+)/i);
+    let prompt = mP ? mP[1].trim() : raw.trim();
+    prompt = prompt.replace(/\s+/g, " ");
+    let final = "";
+    if (mC) final += mC[1].trim().replace(/\s+/g, " ") + ". ";
+    final += prompt;
+    if (mT) final += `. Large bold headline text written exactly and correctly: "${mT[1].trim()}", text clearly readable, high contrast outline on text`;
+    if (mK) final += `. Main theme keyword: ${mK[1].trim()}`;
+    final += ". YouTube thumbnail, wide 16:9 composition, highly detailed, vibrant colors, dramatic professional lighting, sharp focus, no watermark, no logo.";
+    return final;
 }
 
-/* देवनागरी → phonetic Latin (Hinglish), ताकि xKiro की voice हिंदी बोल सके */
-function transliterateHi(src) {
-    const NUKTA = {"ज़":"z","क़":"q","ख़":"kh","ग़":"g","फ़":"f","ड़":"r","ढ़":"rh"};
-    for (const k in NUKTA) src = src.split(k).join(NUKTA[k]);
-    const CONS = {"क्ष":"ksh","ज्ञ":"gy","त्र":"tr","श्र":"shr","ख":"kh","घ":"gh","छ":"chh","झ":"jh","ठ":"th","ढ":"dh","ण":"n","थ":"th","ध":"dh","फ":"ph","भ":"bh","श":"sh","ष":"sh","ह":"h","क":"k","ग":"g","च":"ch","ज":"j","ट":"t","ड":"d","त":"t","द":"d","न":"n","प":"p","ब":"b","म":"m","य":"y","र":"r","ल":"l","व":"v","स":"s","ळ":"l","ङ":"n","ञ":"n","z":"z","q":"q","f":"f"};
-    const VOW = {"आ":"aa","ई":"ee","ऊ":"oo","ऑ":"o","ऍ":"e","अ":"a","इ":"i","उ":"u","ऋ":"ri","ए":"e","ऐ":"ai","ओ":"o","औ":"au"};
-    const MATRA = {"ा":"a","ि":"i","ी":"ee","ु":"u","ू":"oo","ृ":"ri","े":"e","ै":"ai","ो":"o","ौ":"au","ॉ":"o","ॅ":"e"};
-    const DIGIT = {"०":"0","१":"1","२":"2","३":"3","४":"4","५":"5","६":"6","७":"7","८":"8","९":"9"};
-    const keys = Object.keys(CONS).sort((a,b)=>b.length-a.length);
-    const vkeys = Object.keys(VOW).sort((a,b)=>b.length-a.length);
-    let out = "", i = 0, lastInherent = false;
-    const flush = () => { if (lastInherent && out.endsWith("a")) out = out.slice(0, -1); lastInherent = false; };
-    while (i < src.length) {
-        let hit = null;
-        for (const k of keys) if (src.startsWith(k, i)) { hit = ["c", k, CONS[k]]; break; }
-        if (!hit) for (const k of vkeys) if (src.startsWith(k, i)) { hit = ["v", k, VOW[k]]; break; }
-        if (hit) {
-            flush();
-            const [type, k, v] = hit;
-            i += k.length;
-            if (type === "c") {
-                if (src[i] === "्") { out += v; i++; }
-                else if (MATRA[src[i]]) { out += v + MATRA[src[i]]; i++; }
-                else { out += v + "a"; lastInherent = true; }
-            } else { out += v; }
-            continue;
-        }
-        const ch = src[i];
-        if (ch === "्") { i++; continue; }
-        if (ch === "ं" || ch === "ँ") { flush(); out += "n"; i++; continue; }
-        if (ch === "ः") { flush(); out += "h"; i++; continue; }
-        if (DIGIT[ch]) { flush(); out += DIGIT[ch]; i++; continue; }
-        if (ch === "।") { flush(); out += ". "; i++; continue; }
-        if (/\s/.test(ch)) { flush(); out += " "; i++; continue; }
-        flush(); out += ch; i++;
-    }
-    flush();
-    return out.replace(/\s+/g, " ").trim();
+/* ================= SPINNER + TIMER ================= */
+let timerInterval = null, startTime = 0;
+function fmtClock(ms) {
+    const s = Math.floor(ms / 1000);
+    const mm = String(Math.floor(s / 60)).padStart(2, "0");
+    const ss = String(s % 60).padStart(2, "0");
+    return `⏱️ ${mm}:${ss}`;
 }
-
-/* लंबी स्क्रिप्ट को वाक्य सीमा पर chunks में बाँटें (speech engine limit के लिए) */
-function chunkText(t, max = 1400) {
-    const parts = []; let cur = "";
-    const sentences = t.match(/[^.!?]+[.!?]*\s*/g) || [t];
-    for (const s of sentences) {
-        if ((cur + s).length > max && cur) { parts.push(cur.trim()); cur = ""; }
-        if (s.length > max) {
-            let rest = s;
-            while (rest.length > max) { parts.push(rest.slice(0, max)); rest = rest.slice(max); }
-            cur = rest;
-        } else cur += s;
-    }
-    if (cur.trim()) parts.push(cur.trim());
-    return parts.length ? parts : [t];
+function fmtHuman(ms) {
+    const s = Math.round(ms / 1000);
+    if (s < 60) return `${s} सेकंड`;
+    return `${Math.floor(s / 60)} मिनट ${s % 60} सेकंड`;
 }
-
-/* ================= VOICE (TTS) MODULE ================= */
-async function populateVoices() {
-    const vs = document.getElementById('voiceSelect');
-    vs.innerHTML = "";
-    vs.add(new Option("⏳ Voice list लोड हो रही है...", ""));
-    try {
-        const r = await fetch(`${WORKER_URL}/v1/audio/voices?limit=200`);
-        if (!r.ok) throw new Error("voices fetch failed");
-        const d = await r.json();
-        const list = (d.voices || []).filter(v => !v.isVip);
-        if (!list.length) throw new Error("empty list");
-        vs.innerHTML = "";
-        vs.add(new Option("🤖 Auto Voice (Model Default – recommended)", ""));
-        list.forEach(v => vs.add(new Option(`${v.name}  [${v.id}]`, v.id)));
-    } catch (e) {
-        vs.innerHTML = "";
-        FALLBACK_VOICES.forEach(([id, name]) => vs.add(new Option(name, id)));
-    }
+function startTimer() {
+    startTime = Date.now();
+    document.getElementById('timerText').textContent = fmtClock(0);
+    timerInterval = setInterval(() => {
+        document.getElementById('timerText').textContent = fmtClock(Date.now() - startTime);
+    }, 1000);
 }
-
-async function generateSpeech() {
-    let text = cleanText(document.getElementById('ttsInput').value);
-    if (!text.trim()) return alert("कृपया जनरेट करने के लिए टेक्स्ट डालें!");
-
-    const hasHindi = /[\u0900-\u097F]/.test(text);
-    const hing = document.getElementById('hinglishToggle').checked;
-    if (hasHindi && !hing) {
-        return alert("⚠️ xKiro TTS देवनागरी (Hindi लिपि) सपोर्ट नहीं करता — engine text reject कर देगा।\n\nकृपया 'Hindi → Hinglish auto-convert' checkbox ON करें।");
-    }
-    if (hasHindi && hing) text = transliterateHi(text);
-
-    const chunks = chunkText(text);
-    const speed = parseFloat(document.getElementById('speedRange').value);
-    const voice = document.getElementById('customVoice').value.trim() || document.getElementById('voiceSelect').value;
-
-    const btn = document.getElementById('ttsBtn');
-    const loader = document.getElementById('ttsLoader');
-    const audioContainer = document.getElementById('audioContainer');
-    const audioPlayer = document.getElementById('audioPlayer');
-    btn.disabled = true;
-    loader.style.display = "block";
-    audioContainer.classList.add('hidden');
-
-    try {
-        const blobs = [];
-        for (let c = 0; c < chunks.length; c++) {
-            loader.textContent = `Generating Audio... part ${c + 1}/${chunks.length}`;
-            const body = { model: TTS_MODEL, input: chunks[c], response_format: "mp3", speed: speed };
-            if (voice) body.voice = voice;
-            const response = await fetch(`${WORKER_URL}/v1/audio/speech`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body)
-            });
-            if (!response.ok) {
-                let msg = `API Error (${response.status})`;
-                try { const e = await response.json(); msg = e.error?.message || e.error || msg; } catch (_) {}
-                throw new Error(msg);
-            }
-            blobs.push(await response.blob());
-        }
-        const fullBlob = new Blob(blobs, { type: "audio/mpeg" });
-        if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
-        currentAudioUrl = URL.createObjectURL(fullBlob);
-        audioPlayer.src = currentAudioUrl;
-        audioContainer.classList.remove('hidden');
-        audioPlayer.play().catch(() => {});
-    } catch (error) {
-        alert("⚠️ TTS Error: " + error.message + "\n\nटिप: Hinglish toggle ON रखें और Voice dropdown से 'Auto Voice' या 'Male Narrator' चुनें।");
-    } finally {
-        btn.disabled = false;
-        loader.style.display = "none";
-    }
+function stopTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = null;
 }
-
-function downloadAudio() {
-    if (!currentAudioUrl) return alert("पहले ऑडियो जनरेट करें!");
-    const a = document.createElement('a');
-    a.href = currentAudioUrl;
-    a.download = "voice-" + Date.now() + ".mp3";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+function setStatus(msg) {
+    document.getElementById('statusText').textContent = msg;
 }
-
-/* ================= THUMBNAIL MODULE ================= */
-function buildThumbPrompt() {
-    const styleKey = document.getElementById('thumbStyle').value;
-    const styleDesc = THUMB_STYLES[styleKey] || "";
-    const title = document.getElementById('thumbTitle').value.trim();
-    const extra = document.getElementById('thumbPrompt').value.trim();
-    let p = "YouTube thumbnail, wide 16:9 widescreen composition, " + styleDesc;
-    if (title) p += `. Large bold headline text written exactly and correctly: "${title}" , text clearly readable, high contrast outline on text`;
-    if (extra) p += ". " + extra;
-    p += ". Highly detailed, vibrant colors, dramatic professional lighting, sharp focus, no watermark, no logo, no extra text.";
-    return p;
-}
-
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+/* ================= IMAGE JOB (स्मार्ट retry के साथ) ================= */
 async function createImageJob(prompt) {
     let lastErr = null;
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -408,25 +211,32 @@ async function createImageJob(prompt) {
                 body: JSON.stringify({ model: IMG_MODEL, prompt: prompt, n: 1, size: IMG_SIZE })
             });
             const job = await r1.json();
-            if (!r1.ok || !job.id) throw new Error(job.error?.message || job.error || `Job create नहीं हुआ (HTTP ${r1.status})`);
+            if (!r1.ok || !job.id) {
+                const msg = job.error?.message || job.error || `Job create नहीं हुआ (HTTP ${r1.status})`;
+                // 4xx = पक्की गलती (retry बेकार), 5xx/नेटवर्क = retry करो
+                if (r1.status >= 400 && r1.status < 500) throw new Error(msg);
+                throw Object.assign(new Error(msg), { retryable: true });
+            }
             return job;
         } catch (e) {
             lastErr = e;
-            if (attempt === 0) await sleep(2500);   // नेटवर्क गड़बड़ी हो तो एक retry
+            if (!e.retryable || attempt === 1) throw e;
+            setStatus("⚠️ नेटवर्क गड़बड़ी — दोबारा कोशिश हो रही है...");
+            await sleep(2500);
         }
     }
     throw lastErr;
 }
 
-async function pollImageJob(id, loader) {
-    const deadline = Date.now() + 5 * 60 * 1000;
-    let waitMs = 3000;
+async function pollImageJob(id) {
+    const deadline = Date.now() + 8 * 60 * 1000;   // स्लो मॉडल के लिए 8 मिनट तक धैर्य
+    let waitMs = 2000;                             // तेज़ शुरुआत
     while (Date.now() < deadline) {
         await sleep(waitMs);
-        waitMs = Math.min(waitMs * 1.5, 10000);
-        loader.textContent = "🎨 Image बन रही है... इंतज़ार करें (30 सेकंड–कुछ मिनट)";
+        waitMs = Math.min(waitMs * 1.4, 8000);
+        setStatus("🎨 Image render हो रही है... कतार में लगी है");
         let st = null;
-        for (let attempt = 0; attempt < 3 && !st; attempt++) {   // नेटवर्क retry
+        for (let attempt = 0; attempt < 3 && !st; attempt++) {   // polling नेटवर्क retry
             try {
                 const r2 = await fetch(`${WORKER_URL}/v1/images/generations/${id}`);
                 st = await r2.json();
@@ -434,46 +244,63 @@ async function pollImageJob(id, loader) {
         }
         if (!st) continue;
         if (st.status === "succeeded") return st.data && st.data[0] && st.data[0].url;
-        if (st.status === "failed" || st.status === "blocked") throw new Error(st.error?.message || ("Job " + st.status));
+        if (st.status === "failed" || st.status === "blocked") {
+            throw new Error(st.error?.message || ("Job " + st.status));
+        }
+        setStatus("🎨 Image render हो रही है... (" + st.status + ")");
     }
-    throw new Error("Image job समय सीमा में पूरा नहीं हुआ – दोबारा कोशिश करें");
+    throw new Error("Image job 8 मिनट में पूरा नहीं हुआ — दोबारा कोशिश करें");
 }
 
+/* ================= GENERATE THUMBNAIL ================= */
 async function generateThumbnail() {
-    const prompt = buildThumbPrompt();
+    const raw = document.getElementById('promptBox').value.trim();
+    if (!raw) return alert("कृपया Prompt Paste Box में प्रॉन्प्ट पेस्ट करें!");
+    const prompt = parsePromptBlock(raw);
+
     const btn = document.getElementById('thumbBtn');
-    const loader = document.getElementById('thumbLoader');
+    const status = document.getElementById('genStatus');
+    const success = document.getElementById('successMsg');
     const result = document.getElementById('thumbResult');
     const img = document.getElementById('thumbImg');
+
     btn.disabled = true;
-    loader.style.display = "block";
-    loader.textContent = "Image job बनाया जा रहा है...";
     result.classList.add('hidden');
+    success.classList.add('hidden');
+    status.classList.remove('hidden');
+    setStatus("Job बनाया जा रहा है...");
+    startTimer();
+
     try {
         const job = await createImageJob(prompt);
-        const imageUrl = await pollImageJob(job.id, loader);
-        if (!imageUrl) throw new Error("Image URL नहीं मिला");
-        currentImageUrl = imageUrl;
-        img.src = imageUrl;
+        setStatus("✅ Job बन गया — image render हो रही है...");
+        const url = await pollImageJob(job.id);
+        if (!url) throw new Error("Image URL नहीं मिला");
+        const elapsed = Date.now() - startTime;
+        stopTimer();
+        document.getElementById('timerText').textContent = fmtClock(elapsed);
+        status.classList.add('hidden');
+        success.textContent = `✅ Image बन गई! कुल समय: ${fmtHuman(elapsed)}`;
+        success.classList.remove('hidden');
+        currentImageUrl = url;
+        img.src = url;
         result.classList.remove('hidden');
     } catch (error) {
-        alert("⚠️ Thumbnail Error: " + error.message + "\n\nटिप: नेटवर्क कमज़ोर हो तो दोबारा कोशिश करें — polling में auto-retry लगा है।");
+        stopTimer();
+        status.classList.add('hidden');
+        alert("⚠️ Thumbnail Error: " + error.message + "\n(लगा समय: " + fmtHuman(Date.now() - startTime) + ")");
     } finally {
         btn.disabled = false;
-        loader.style.display = "none";
     }
 }
 
-/* इमेज को canvas पर 1280x720 (cover-crop) बनाकर डाउनलोड */
+/* ================= DOWNLOAD (1280x720 cover-crop) ================= */
 function downloadImage(forceResize) {
     if (!currentImageUrl) return alert("पहले थंबनेल जनरेट करें!");
     const finish = (url, name) => {
         const a = document.createElement('a');
-        a.href = url;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
     };
     if (!forceResize && currentImageUrl.startsWith("data:")) {
         finish(currentImageUrl, "thumbnail-" + Date.now() + ".png");
@@ -484,8 +311,7 @@ function downloadImage(forceResize) {
     im.onload = () => {
         try {
             const c = document.createElement('canvas');
-            c.width = 1280;
-            c.height = 720;
+            c.width = 1280; c.height = 720;
             const ctx = c.getContext('2d');
             const scale = Math.max(1280 / im.width, 720 / im.height);
             const dw = im.width * scale, dh = im.height * scale;
@@ -495,15 +321,11 @@ function downloadImage(forceResize) {
                 finish(u, "youtube-thumbnail-1280x720.png");
                 setTimeout(() => URL.revokeObjectURL(u), 5000);
             }, "image/png");
-        } catch (e) {
-            window.open(currentImageUrl, "_blank");
-        }
+        } catch (e) { window.open(currentImageUrl, "_blank"); }
     };
     im.onerror = () => window.open(currentImageUrl, "_blank");
     im.src = currentImageUrl;
 }
-
-populateVoices();
 </script>
 </body>
 </html>
