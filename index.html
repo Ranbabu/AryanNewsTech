@@ -74,7 +74,7 @@
     </div>
 </div>
 
-<!-- ========== MODULE 2: THUMBNAIL (सिर्फ़ वर्किंग engines) ========== -->
+<!-- ========== MODULE 2: THUMBNAIL ========== -->
 <div id="thumb-module" class="card hidden">
     <label>🎨 Image Engine चुनें (सिर्फ़ tested/working)</label>
     <select id="engineSelect">
@@ -86,7 +86,7 @@
         <option value="puter-flux2">⚡ FLUX.2 Pro – Puter FREE</option>
         <option value="cf-flux">☁️ Cloudflare FLUX (Worker free tier – कोई login/पॉपअप नहीं, सच्चा 16:9)</option>
     </select>
-    <p class="hint">💡 पहली बार Puter पर फ्री login पॉपअप आएगा — allow करें। कोई engine फेल हो तो अपने आप दूसरा ट्राई होता है और status में असली वजह दिखती है। 1280×720 डाउनलोड = पूरा फ्रेम, कोई ब्लर बार नहीं, टेक्स्ट safe-zone में रहने से कटेगा नहीं। Gemini/paid/sensenova engines हटा दिए गए (काम नहीं करते थे)।</p>
+    <p class="hint">💡 पहली बार Puter पर फ्री login पॉपअप आएगा — allow करें। कोई engine फेल हो तो अपने आप दूसरा ट्राई होता है और status में असली वजह दिखती है। 1280×720 डाउनलोड से पहले Crop Position चुनें: faces ऊपर कटें तो "ऊपर से", banner नीचे कटे तो "नीचे से"।</p>
 
     <label>Prompt Paste Box</label>
     <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: UPI Tap & Pay&#10;Text: "UPI क्रांति! नए फीचर!"&#10;Concept: Dynamic, futuristic, hand tapping phone on POS machine...&#10;Prompt: A high-angle, cinematic, photorealistic image of a hand holding a modern smartphone...&#10;Branding: "Aryan News Tek"'></textarea>
@@ -102,8 +102,14 @@
 
     <div id="thumbResult" class="hidden">
         <img id="thumbImg" alt="YouTube Thumbnail">
+        <label>📐 Crop Position (1280×720 डाउनलोड के लिए)</label>
+        <select id="cropPos">
+            <option value="center" selected>🎯 बीच (Auto)</option>
+            <option value="top">⬆️ ऊपर से रखें (faces/सिर बचाने के लिए)</option>
+            <option value="bottom">⬇️ नीचे से रखें (banner/नीचे का टेक्स्ट बचाने के लिए)</option>
+        </select>
         <div class="btn-group">
-            <button class="btn-copy" onclick="downloadImage(true)">📐 1280×720 Full-Frame Download (कोई बार नहीं)</button>
+            <button class="btn-copy" onclick="downloadImage(true)">📐 1280×720 Full-Frame Download</button>
             <button class="btn-secondary" onclick="downloadImage(false)">⬇️ Original PNG</button>
         </div>
     </div>
@@ -111,7 +117,6 @@
 
 <script>
 const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
-/* ✅ Puter के ऑफिशियल docs से verified सही model IDs */
 const PUTER_MODELS = {
     "puter-gpt2":  "openai/gpt-image-2",
     "puter-gpt1":  "openai/gpt-image-1",
@@ -168,7 +173,7 @@ async function generateScript() {
     }
 }
 
-/* ================= PROMPT BUILDER (safe-zone rule के साथ) ================= */
+/* ================= PROMPT BUILDER (मज़बूत safe-zone: faces + टेक्स्ट सब बीच में) ================= */
 const hasDev = s => /[\u0900-\u097F]/.test(s);
 function buildFinalPrompt(raw) {
     const quotes = [];
@@ -190,7 +195,7 @@ function buildFinalPrompt(raw) {
     if (main) p += ` The main Hindi headline must appear EXACTLY as: "${main}" — large, bold, dominant placement.`;
     if (sub)  p += ` The supporting Hindi line must appear EXACTLY as: "${sub}" — smaller, on a contrasting color banner.`;
     if (brand) p += ` Small corner branding text EXACTLY: "${brand}".`;
-    p += " SAFE-ZONE RULE: The final image will be center-cropped to 16:9 landscape (YouTube thumbnail). Therefore place ALL headlines, banners, logos, prices and every text element strictly inside the central safe zone — vertically between 22% and 78% of the image height. Keep the top 20% and bottom 20% as pure background artwork with NO text.";
+    p += " STRICT 16:9 SAFE-ZONE RULE: This image will be center-cropped to 16:9 landscape. Therefore EVERY important element — all people's complete faces and heads, bodies, weapons, objects, fuel pumps, price boards, headlines, banners, logos — must be placed INSIDE the central horizontal band between 22% and 78% of the image height. The top 22% and bottom 22% of the canvas must contain ONLY extendable background artwork (sky, flags, gradient, smoke, blur) with absolutely NO faces, NO bodies, NO text, NO important objects.";
     p += " No distorted or invented Devanagari characters, no extra text, no watermark, no newspaper screenshots. Wide 16:9 YouTube thumbnail composition, photorealistic, cinematic news lighting.";
     return p;
 }
@@ -217,7 +222,7 @@ function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInt
 function setStatus(msg) { document.getElementById('statusText').textContent = msg; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* ================= PUTER AUTH (popup click के अंदर खुले) ================= */
+/* ================= PUTER AUTH ================= */
 function ensurePuterAuthSync() {
     if (!window.puter || !puter.auth) return Promise.reject(new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउज़र जाँचें"));
     let signed = false;
@@ -228,7 +233,7 @@ function ensurePuterAuthSync() {
     });
 }
 
-/* ================= ENGINE: PUTER (landscape try + सभी return types handle) ================= */
+/* ================= ENGINE: PUTER ================= */
 async function generateViaPuter(prompt, model) {
     if (!window.puter || !puter.ai || !puter.ai.txt2img) throw new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउज़र जाँचें");
     const extra = model.startsWith("openai/") ? { size: "1536x1024" }
@@ -252,7 +257,7 @@ async function generateViaPuter(prompt, model) {
     throw new Error("Puter response का format समझ नहीं आया");
 }
 
-/* ================= ENGINE: CLOUDFLARE WORKERS AI (FLUX free, सच्चा 16:9) ================= */
+/* ================= ENGINE: CLOUDFLARE WORKERS AI ================= */
 async function generateViaCF(prompt) {
     const r = await fetch(`${WORKER_URL}/cf/image`, {
         method: "POST",
@@ -264,7 +269,7 @@ async function generateViaCF(prompt) {
     return `data:${d.mimeType || "image/png"};base64,${d.b64}`;
 }
 
-/* ================= GENERATE THUMBNAIL (Puter → CF FLUX, असली error दिखेगा) ================= */
+/* ================= GENERATE THUMBNAIL ================= */
 async function generateThumbnail() {
     const raw = document.getElementById('promptBox').value.trim();
     if (!raw) return alert("कृपया Prompt Paste Box में प्रॉन्प्ट पेस्ट करें!");
@@ -331,14 +336,19 @@ async function generateThumbnail() {
     }
 }
 
-/* ================= 1280×720 FULL-FRAME (center cover-crop, कोई बार नहीं) ================= */
-function fit1280x720(im) {
+/* ================= 1280×720 FULL-FRAME (crop position के साथ) ================= */
+function fit1280x720(im, pos) {
+    pos = pos || "center";
     const c = document.createElement('canvas');
     c.width = 1280; c.height = 720;
     const ctx = c.getContext('2d');
     const s = Math.max(1280 / im.width, 720 / im.height);
     const dw = im.width * s, dh = im.height * s;
-    ctx.drawImage(im, (1280 - dw) / 2, (720 - dh) / 2, dw, dh);
+    const overflow = dh - 720;
+    let oy = overflow / 2;
+    if (pos === "top") oy = 0;
+    else if (pos === "bottom") oy = overflow;
+    ctx.drawImage(im, (1280 - dw) / 2, -oy, dw, dh);
     return c;
 }
 
@@ -358,12 +368,15 @@ function downloadImage(forceResize) {
     im.crossOrigin = "anonymous";
     im.onload = () => {
         try {
-            const c = forceResize ? fit1280x720(im) : (() => {
-                const cc = document.createElement('canvas');
-                cc.width = im.width; cc.height = im.height;
-                cc.getContext('2d').drawImage(im, 0, 0);
-                return cc;
-            })();
+            let c;
+            if (forceResize) {
+                const pos = (document.getElementById('cropPos') || {}).value || "center";
+                c = fit1280x720(im, pos);
+            } else {
+                c = document.createElement('canvas');
+                c.width = im.width; c.height = im.height;
+                c.getContext('2d').drawImage(im, 0, 0);
+            }
             c.toBlob(blob => {
                 const u = URL.createObjectURL(blob);
                 finish(u, forceResize ? "youtube-thumbnail-1280x720.png" : "thumbnail-original-" + Date.now() + ".png");
