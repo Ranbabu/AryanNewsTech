@@ -1,3 +1,7 @@
 name = "aryannewstech"
 main = "index.js"
 compatibility_date = "2026-09-15"
+
+# ☁️ Workers AI binding (FLUX free tier के लिए ज़रूरी)
+[ai]
+binding = "AI"
