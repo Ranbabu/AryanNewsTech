@@ -20,35 +20,77 @@ export default {
       });
     }
 
-    // 🍌 GEMINI PROXY (Google AI Studio free tier — Nano Banana 2)
-    if (url.pathname.startsWith("/gemini/")) {
+    // ============================================================
+    // 🍌 GEMINI IMAGE ROUTE (Google AI Studio FREE tier)
+    // POST /gemini/image?model=gemini-3.1-flash-image  {prompt}
+    // ============================================================
+    if (url.pathname === "/gemini/image" && request.method === "POST") {
       const GEMINI_KEY = env.GEMINI_API_KEY;
       if (!GEMINI_KEY) {
-        return new Response(JSON.stringify({ error: "Cloudflare में GEMINI_API_KEY सेट नहीं है!" }), {
+        return new Response(JSON.stringify({ error: "Cloudflare में GEMINI_API_KEY secret सेट नहीं है! (Google AI Studio से फ्री key लेकर secret जोड़ें)" }), {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders }
         });
       }
-      const target = "https://generativelanguage.googleapis.com/" + url.pathname.slice(8) + url.search;
-      const headers = new Headers();
-      headers.set("Content-Type", "application/json");
-      headers.set("x-goog-api-key", GEMINI_KEY);
-      const init = { method: request.method, headers };
-      if (request.method !== "GET" && request.method !== "HEAD") init.body = request.body;
+      const model = url.searchParams.get("model") || "gemini-3.1-flash-image";
+      let prompt = "";
       try {
-        const response = await fetch(target, init);
-        const rh = new Headers(response.headers);
-        rh.set("Access-Control-Allow-Origin", "*");
-        ["content-encoding", "content-length", "cf-cache-status", "server"].forEach(h => rh.delete(h));
-        return new Response(response.body, { status: response.status, statusText: response.statusText, headers: rh });
+        const body = await request.json();
+        prompt = body.prompt || "";
       } catch (e) {
-        return new Response(JSON.stringify({ error: "Gemini Fetch Error: " + e.message }), {
-          status: 502, headers: { "Content-Type": "application/json", ...corsHeaders }
+        return new Response(JSON.stringify({ error: "Bad JSON body" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+      if (!prompt) {
+        return new Response(JSON.stringify({ error: "prompt खाली है" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+
+      try {
+        const upstream = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": GEMINI_KEY,
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                imageConfig: { aspectRatio: "16:9" },
+              },
+            }),
+          }
+        );
+        const d = await upstream.json();
+        if (d.error) {
+          return new Response(JSON.stringify({ error: d.error.message || "Gemini error" }), {
+            status: upstream.status,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+        const cand = d.candidates && d.candidates[0];
+        const parts = (cand && cand.content && cand.content.parts) || [];
+        const imgPart = parts.find(p => p.inlineData && p.inlineData.data);
+        if (!imgPart) {
+          const reason = (cand && cand.finishReason) || "unknown";
+          return new Response(JSON.stringify({ error: `Gemini ने image नहीं लौटाई (finishReason: ${reason})` }), {
+            status: 502,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+        return new Response(JSON.stringify({ b64: imgPart.inlineData.data, mimeType: imgPart.inlineData.mimeType || "image/png" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: `Gemini fetch error: ${e.message}` }), {
+          status: 502,
+          headers: { "Content-Type": "application/json", ...corsHeaders }
         });
       }
     }
 
-    // 🖼️ IMAGE PROXY (CDN bytes के लिए, पुराना route)
+    // 🖼️ IMAGE PROXY — CDN bytes के लिए (purana route, बना हुआ)
     if (url.pathname === "/proxy") {
       const target = url.searchParams.get("url");
       if (!target || !target.startsWith("https://")) {
@@ -56,23 +98,21 @@ export default {
       }
       try {
         const r = await fetch(target);
-        const rh = new Headers(r.headers);
-        rh.set("Access-Control-Allow-Origin", "*");
-        ["content-encoding", "content-length", "cf-cache-status", "server"].forEach(h => rh.delete(h));
-        return new Response(r.body, { status: r.status, headers: rh });
+        const headers = new Headers(r.headers);
+        headers.set("Access-Control-Allow-Origin", "*");
+        ["content-encoding", "content-length", "cf-cache-status", "server"].forEach(h => headers.delete(h));
+        return new Response(r.body, { status: r.status, headers });
       } catch (e) {
         return new Response(JSON.stringify({ error: "Proxy fetch failed: " + e.message }), { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } });
       }
     }
 
-    // 🚀 xKiro DYNAMIC PROXY — सभी /v1/ routes
+    // 🚀 DYNAMIC PROXY — सभी /v1/ routes xKiro पर (chat, images/generations, polling)
     if (url.pathname.startsWith("/v1/")) {
       const targetUrl = "https://api.xkiro.com" + url.pathname + url.search;
       const API_KEY = env.XKIRO_API_KEY;
       if (!API_KEY) {
-        return new Response(JSON.stringify({ error: "Cloudflare में XKIRO_API_KEY सेट नहीं है!" }), {
-          status: 500, headers: { "Content-Type": "application/json", ...corsHeaders }
-        });
+        return new Response(JSON.stringify({ error: "Cloudflare में XKIRO_API_KEY सेट नहीं है!" }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
       }
       const headers = new Headers();
       headers.set("Content-Type", request.headers.get("Content-Type") || "application/json");
@@ -81,19 +121,15 @@ export default {
       if (request.method !== "GET" && request.method !== "HEAD") init.body = request.body;
       try {
         const response = await fetch(targetUrl, init);
-        const rh = new Headers(response.headers);
-        rh.set("Access-Control-Allow-Origin", "*");
-        ["content-encoding", "content-length", "cf-cache-status", "server"].forEach(h => rh.delete(h));
-        return new Response(response.body, { status: response.status, statusText: response.statusText, headers: rh });
+        const responseHeaders = new Headers(response.headers);
+        responseHeaders.set("Access-Control-Allow-Origin", "*");
+        ["content-encoding", "content-length", "cf-cache-status", "server"].forEach(h => responseHeaders.delete(h));
+        return new Response(response.body, { status: response.status, statusText: response.statusText, headers: responseHeaders });
       } catch (error) {
-        return new Response(JSON.stringify({ error: `Worker Fetch Error: ${error.message}` }), {
-          status: 500, headers: { "Content-Type": "application/json", ...corsHeaders }
-        });
+        return new Response(JSON.stringify({ error: `Worker Fetch Error: ${error.message}` }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
       }
     }
 
-    return new Response(JSON.stringify({ error: "Route Not Found" }), {
-      status: 404, headers: { "Content-Type": "application/json", ...corsHeaders }
-    });
+    return new Response(JSON.stringify({ error: "Route Not Found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
   }
 };
