@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AI News Studio Pro</title>
+<script src="https://js.puter.com/v2/"></script>
 <style>
     :root { --bg-color:#121212; --card-bg:#1e1e1e; --text-main:#ffffff; --accent:#00d26a; --border:#333333; }
     body { font-family: system-ui, -apple-system, sans-serif; background-color:var(--bg-color); color:var(--text-main); margin:0; padding:15px; }
@@ -77,11 +78,13 @@
 <div id="thumb-module" class="card hidden">
     <label>🎨 Image Engine चुनें</label>
     <select id="engineSelect">
-        <option value="sensenova" selected>🆓 sensenova-u1.5-lite (xKiro FREE – रोज़ाना फ्री images)</option>
-        <option value="gpt-image">🤖 GPT Image (ChatGPT मॉडल) – ≈₹0.85/image (xKiro wallet बैलेंस ज़रूरी)</option>
-        <option value="nano2">🍌 Nano Banana 2 (Gemini) – सिर्फ़ Google billing/Tier-1 के साथ</option>
+        <option value="puter-gpt" selected>🤖 GPT Image (ChatGPT मॉडल) – Puter.js से 100% FREE, कोई key नहीं</option>
+        <option value="puter-nb">🍌 Nano Banana (Gemini) – Puter.js से FREE</option>
+        <option value="sensenova">🆓 sensenova-u1.5-lite (xKiro FREE – बिना login backup)</option>
+        <option value="gpt-image">💰 GPT Image via xKiro (≈₹0.85/image – wallet बैलेंस ज़रूरी)</option>
+        <option value="nano2">🍌 Nano Banana 2 via Google API (सिर्फ़ paid Google billing)</option>
     </select>
-    <p class="hint">💡 Hindi टेक्स्ट प्रॉन्प्ट के अंदर मॉडल खुद लिखेगा (overlay नहीं)। FREE = sensenova (default)। ChatGPT जैसी क्वालिटी चाहिए तो GPT Image चुनें — इसके लिए xKiro dashboard में wallet बैलेंस डालें ($5 ≈ 5000+ थंबनेल नहीं, लेकिन सैकड़ों बन जाएँगे)। बैलेंस न हो तो अपने आप sensenova FREE पर गिर जाएगा।</p>
+    <p class="hint">💡 पहली बार Puter इंजन चलाने पर एक फ्री Puter login पॉपअप आएगा (कोई कार्ड नहीं) — एक बार login के बाद सब अपने आप। Hindi टेक्स्ट प्रॉन्प्ट के अंदर मॉडल खुद लिखेगा (ChatGPT जैसी क्वालिटी)। कोई इंजन फेल हो तो अपने आप sensenova FREE पर गिर जाएगा।</p>
 
     <label>Prompt Paste Box</label>
     <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: UPI Tap & Pay&#10;Text: "UPI क्रांति! नए फीचर!"&#10;Concept: Dynamic, futuristic, hand tapping phone on POS machine...&#10;Prompt: A high-angle, cinematic, photorealistic image of a hand holding a modern smartphone...&#10;Branding: "Aryan News Tek"'></textarea>
@@ -107,11 +110,9 @@
 <script>
 const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
 const IMG_SIZE_XKIRO = "1792x1024";
-
-/* ✅ असली xKiro model IDs (पहले यही गलती थी — "sensenova" भेजा जा रहा था) */
 const XKIRO_MODEL_IDS = {
-    "sensenova": "sensenova/sensenova-u1.5-lite",   // FREE
-    "gpt-image": "gpt-image"                        // ChatGPT मॉडल, ~$0.00963/image (wallet बैलेंस ज़रूरी)
+    "sensenova": "sensenova/sensenova-u1.5-lite",
+    "gpt-image": "gpt-image"
 };
 let currentImageUrl = null;
 
@@ -161,7 +162,7 @@ async function generateScript() {
     }
 }
 
-/* ================= PROMPT BUILDER — Hindi टेक्स्ट प्रॉन्प्ट के अंदर ================= */
+/* ================= PROMPT BUILDER — Hindi प्रॉन्प्ट के अंदर ================= */
 const hasDev = s => /[\u0900-\u097F]/.test(s);
 function buildFinalPrompt(raw) {
     const quotes = [];
@@ -209,11 +210,34 @@ function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInt
 function setStatus(msg) { document.getElementById('statusText').textContent = msg; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* ================= xKiro async image jobs ================= */
-async function xkiroFlow(engineKey, prompt) {
-    const model = XKIRO_MODEL_IDS[engineKey] || engineKey;   // ✅ फुल सही ID जाती है
-    const job = await createImageJob(prompt, model);
-    return await pollImageJob(job.id);
+/* ================= ENGINE: PUTER.JS (GPT Image / Nano Banana — 100% FREE) ================= */
+async function generateViaPuter(prompt, model) {
+    if (!window.puter || !puter.ai || !puter.ai.txt2img) throw new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउज़र जाँचें");
+    let file = null;
+    try {
+        file = await puter.ai.txt2img(prompt, { model: model });
+    } catch (e) {
+        file = await puter.ai.txt2img(prompt, false, { model: model });   // पुराने signature का fallback
+    }
+    if (!file) throw new Error("Puter से image नहीं मिली (login पॉपअप बंद न करें)");
+    return URL.createObjectURL(file);
+}
+
+/* ================= ENGINE: xKiro (auto job-retry के साथ) ================= */
+async function xkiroFlow(engineKey, prompt, maxJobs = 2) {
+    const model = XKIRO_MODEL_IDS[engineKey] || engineKey;
+    let lastErr = null;
+    for (let j = 0; j < maxJobs; j++) {
+        try {
+            const job = await createImageJob(prompt, model);
+            return await pollImageJob(job.id);
+        } catch (e) {
+            lastErr = e;
+            if (/does not exist|wallet|balance|insufficient|quota|allowance|blocked/i.test(e.message)) throw e;
+            if (j + 1 < maxJobs) setStatus(`⚠️ Job fail हुआ — auto-retry (${j + 2}/${maxJobs}) नया job शुरू...`);
+        }
+    }
+    throw lastErr;
 }
 async function createImageJob(prompt, model) {
     let lastErr = null;
@@ -241,11 +265,11 @@ async function createImageJob(prompt, model) {
     throw lastErr;
 }
 async function pollImageJob(id) {
-    const deadline = Date.now() + 8 * 60 * 1000;
-    let waitMs = 2000;
+    const deadline = Date.now() + 6 * 60 * 1000;
+    let waitMs = 1500;
     while (Date.now() < deadline) {
         await sleep(waitMs);
-        waitMs = Math.min(waitMs * 1.4, 8000);
+        waitMs = Math.min(waitMs * 1.4, 6000);
         setStatus("🎨 Image render हो रही है... कतार में लगी है");
         let st = null;
         for (let attempt = 0; attempt < 3 && !st; attempt++) {
@@ -259,10 +283,10 @@ async function pollImageJob(id) {
         if (st.status === "failed" || st.status === "blocked") throw new Error(st.error?.message || ("Job " + st.status));
         setStatus("🎨 Image render हो रही है... (" + st.status + ")");
     }
-    throw new Error("Image job 8 मिनट में पूरा नहीं हुआ — दोबारा कोशिश करें");
+    throw new Error("Image job समय सीमा में पूरा नहीं हुआ — दोबारा कोशिश करें");
 }
 
-/* ================= Gemini (Nano Banana) — paid Google billing only ================= */
+/* ================= ENGINE: Google Gemini (paid billing only) ================= */
 async function generateViaGemini(prompt) {
     const models = ["gemini-3.1-flash-image", "gemini-3.1-flash-image-preview", "gemini-2.5-flash-image"];
     let lastErr = null;
@@ -292,7 +316,7 @@ async function generateViaGemini(prompt) {
     throw lastErr || new Error("Gemini से image नहीं मिली");
 }
 
-/* ================= GENERATE THUMBNAIL (स्मार्ट fallback) ================= */
+/* ================= GENERATE THUMBNAIL (स्मार्ट fallback chain) ================= */
 async function generateThumbnail() {
     const raw = document.getElementById('promptBox').value.trim();
     if (!raw) return alert("कृपया Prompt Paste Box में प्रॉन्प्ट पेस्ट करें!");
@@ -314,30 +338,41 @@ async function generateThumbnail() {
 
     let finalUrl = null, usedEngine = engine;
     try {
-        if (engine === "gpt-image") {
-            setStatus("🤖 GPT Image (ChatGPT मॉडल, ≈₹0.85) job बनाया जा रहा है...");
+        if (engine === "puter-gpt" || engine === "puter-nb") {
+            const pmodel = (engine === "puter-gpt") ? "gpt-image-1" : "nano-banana";
+            setStatus(`🤖 Puter FREE (${pmodel}) image बना रहा है... (पहली बार तो login पॉपअप स्वीकार करें)`);
+            try {
+                finalUrl = await generateViaPuter(prompt, pmodel);
+                usedEngine = pmodel + " (Puter FREE)";
+            } catch (e) {
+                setStatus("⚠️ Puter fail — sensenova FREE से बना रहे हैं...");
+                finalUrl = await xkiroFlow("sensenova", prompt);
+                usedEngine = "sensenova (auto-fallback)";
+            }
+        } else if (engine === "sensenova") {
+            setStatus("🆓 sensenova (FREE) job बनाया जा रहा है...");
+            finalUrl = await xkiroFlow("sensenova", prompt);
+        } else if (engine === "gpt-image") {
+            setStatus("💰 GPT Image (xKiro, ≈₹0.85) job बनाया जा रहा है...");
             try {
                 finalUrl = await xkiroFlow("gpt-image", prompt);
             } catch (e) {
                 if (/quota|allowance|wallet|balance|insufficient|credit|billing/i.test(e.message)) {
-                    setStatus("⚠️ GPT Image के लिए wallet बैलेंस नहीं — sensenova FREE से बना रहे हैं...");
+                    setStatus("⚠️ Wallet बैलेंस नहीं — sensenova FREE से बना रहे हैं...");
                     finalUrl = await xkiroFlow("sensenova", prompt);
-                    usedEngine = "sensenova (auto-fallback, FREE)";
+                    usedEngine = "sensenova (auto-fallback)";
                 } else throw e;
             }
-        } else if (engine === "nano2") {
+        } else {
             try {
                 finalUrl = await generateViaGemini(prompt);
             } catch (e) {
                 if (/quota|limit|billing/i.test(e.message)) {
-                    setStatus("⚠️ Gemini फ्री कोटा 0 है — sensenova FREE से बना रहे हैं...");
+                    setStatus("⚠️ Gemini फ्री कोटा 0 — sensenova FREE से बना रहे हैं...");
                     finalUrl = await xkiroFlow("sensenova", prompt);
-                    usedEngine = "sensenova (auto-fallback, FREE)";
+                    usedEngine = "sensenova (auto-fallback)";
                 } else throw e;
             }
-        } else {
-            setStatus("🆓 sensenova (FREE) job बनाया जा रहा है...");
-            finalUrl = await xkiroFlow("sensenova", prompt);
         }
         if (!finalUrl) throw new Error("Image URL नहीं मिला");
 
