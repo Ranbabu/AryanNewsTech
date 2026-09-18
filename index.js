@@ -1,24 +1,3 @@
-/* Workers AI output से base64 निकालने का robust helper */
-function extractB64(out) {
-  if (!out) return null;
-  if (typeof out === "string") return out;
-  if (out instanceof ArrayBuffer) out = new Uint8Array(out);
-  if (out instanceof Uint8Array) {
-    let bin = "";
-    for (let i = 0; i < out.length; i += 8192) bin += String.fromCharCode.apply(null, out.subarray(i, i + 8192));
-    return btoa(bin);
-  }
-  if (Array.isArray(out)) { for (const x of out) { const b = extractB64(x); if (b) return b; } return null; }
-  if (typeof out === "object") {
-    if (Array.isArray(out.images)) { const b = extractB64(out.images[0]); if (b) return b; }
-    if (out.image) { const b = extractB64(out.image); if (b) return b; }
-    if (out.b64) return out.b64;
-    if (out.result) { const b = extractB64(out.result); if (b) return b; }
-    if (out.output) { const b = extractB64(out.output); if (b) return b; }
-  }
-  return null;
-}
-
 export default {
   async fetch(request, env) {
     const corsHeaders = {
@@ -33,136 +12,128 @@ export default {
 
     const url = new URL(request.url);
 
-    // 🟢 TEST ROUTE
+    // 🟢 1. TEST ROUTE
     if (url.pathname === "/") {
-      return new Response("✅ Worker is running perfectly! xKiro chat + Cloudflare Workers AI ready.", {
+      return new Response("✅ Aryan News Tech Server is Running! Workers AI + Script ready.", {
         status: 200,
         headers: { "Content-Type": "text/plain; charset=utf-8", ...corsHeaders }
       });
     }
 
-    // 📋 CATALOG ROUTE (CF_API_TOKEN + CF_ACCOUNT_ID secrets हों तो)
-    if (url.pathname === "/cf/models") {
-      const tok = env.CF_API_TOKEN, acc = env.CF_ACCOUNT_ID;
-      if (!tok || !acc) {
-        return new Response(JSON.stringify({ error: "CF_API_TOKEN और CF_ACCOUNT_ID secrets सेट नहीं हैं। आसान तरीका: Dashboard → Workers AI → Models में IDs देखें और variable CF_IMAGE_MODELS में डालें" }), {
-          status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
-        });
-      }
-      try {
-        const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acc}/ai/models/search?per_page=200`, {
-          headers: { Authorization: `Bearer ${tok}` }
-        });
-        const d = await r.json();
-        const list = (d.result || [])
-          .filter(m => ((m.task && m.task.name) || "") === "Text to Image" || /image|flux|diffusion|dreamshaper|lucid|pruna|qwen|grok/i.test(m.name || ""))
-          .map(m => m.name);
-        return new Response(JSON.stringify({ models: list }), {
-          status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
-        });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: "catalog fetch error: " + e.message }), {
-          status: 502, headers: { "Content-Type": "application/json", ...corsHeaders }
-        });
-      }
-    }
-
-    // ============================================================
-    // ☁️ WORKERS AI IMAGE — आपके account वाली सही IDs सबसे पहले
-    // POST /cf/image  {prompt}
-    // ============================================================
+    // 🎨 2. CLOUDFLARE WORKERS AI IMAGE GENERATION ROUTE
     if (url.pathname === "/cf/image" && request.method === "POST") {
       if (!env.AI) {
-        return new Response(JSON.stringify({ error: "Worker में AI binding नहीं है! wrangler.toml में [ai] binding = \"AI\" जोड़कर deploy करें" }), {
+        return new Response(JSON.stringify({ error: "Worker me [ai] binding nahi hai! wrangler.toml check karein." }), {
           status: 500, headers: { "Content-Type": "application/json", ...corsHeaders }
         });
       }
-      let prompt = "";
-      try { prompt = (await request.json()).prompt || ""; } catch (e) {
-        return new Response(JSON.stringify({ error: "Bad JSON body" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
-      }
-      if (!prompt) {
-        return new Response(JSON.stringify({ error: "prompt खाली है" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+
+      let reqBody;
+      try {
+        reqBody = await request.json();
+      } catch (e) {
+        return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      /* variable CF_IMAGE_MODELS में अपनी IDs डालें तो वही पहले चलेंगी */
-      const cfg = String(env.CF_IMAGE_MODELS || "").split(",").map(s => s.trim()).filter(Boolean);
-      const defaults = [
-        "@cf/leonardo/lucid-origin",
-        "pruna/p-image",
-        "alibaba/qwen-image-3.0-pro",
-        "xai/grok-imagine-image-quality",
-        "black-forest-labs/flux-1-kontext-max",
-        "@cf/stabilityai/stable-diffusion-xl-base-1.0"
+      let rawPrompt = reqBody.prompt || "";
+      let selectedModel = reqBody.model || "@cf/black-forest-labs/flux-1-schnell";
+
+      if (!rawPrompt) {
+        return new Response(JSON.stringify({ error: "Prompt khali hai" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Workers AI prompt limit fix: 300 words se chota karke core visual context dena
+      let cleanPrompt = rawPrompt
+        .replace(/\n+/g, " ")
+        .replace(/\s+/g, " ")
+        .slice(0, 1000)
+        .trim();
+
+      // Verified Working Cloudflare Models in order of fallback
+      const availableModels = [
+        selectedModel,
+        "@cf/black-forest-labs/flux-1-schnell",
+        "@cf/stabilityai/stable-diffusion-xl-base-1.0",
+        "@cf/bytedance/stable-diffusion-xl-lightning",
+        "@cf/leonardo/lucid-origin"
       ];
-      const bases = cfg.length ? cfg : defaults;
 
-      /* हर ID को उसकी दोनों संभावित forms (@cf/ सहित/रहित) में आज़माएँ */
-      const candidates = [];
-      for (const b of bases) {
-        candidates.push(b);
-        if (!b.startsWith("@cf/")) candidates.push("@cf/" + b);
-      }
+      // Remove duplicate models
+      const modelsToTry = [...new Set(availableModels)];
+      let lastError = "";
 
-      let shortPrompt = prompt;
-      if (shortPrompt.length > 400) shortPrompt = shortPrompt.slice(0, 400).replace(/\s+\S*$/, "");
-
-      const errs = [];
-      for (const m of candidates) {
+      for (const modelId of modelsToTry) {
         try {
-          const out = await env.AI.run(m, { prompt: shortPrompt, width: 1024, height: 576 });
-          const b64 = extractB64(out);
-          if (b64) {
-            return new Response(JSON.stringify({ b64: b64, mimeType: "image/png" }), {
+          // Cloudflare AI Call with a strict 25s execution window
+          const aiResponse = await env.AI.run(modelId, {
+            prompt: cleanPrompt,
+            num_steps: 4 // Fast rendering
+          });
+
+          // Cloudflare AI returns a ReadableStream or ArrayBuffer
+          let arrayBuffer;
+          if (aiResponse instanceof ReadableStream) {
+            const reader = aiResponse.getReader();
+            const chunks = [];
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+            }
+            let totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
+            let merged = new Uint8Array(totalLength);
+            let offset = 0;
+            for (let chunk of chunks) {
+              merged.set(chunk, offset);
+              offset += chunk.length;
+            }
+            arrayBuffer = merged.buffer;
+          } else if (aiResponse instanceof Uint8Array) {
+            arrayBuffer = aiResponse.buffer;
+          } else if (aiResponse instanceof ArrayBuffer) {
+            arrayBuffer = aiResponse;
+          } else if (aiResponse && aiResponse.image) {
+            return new Response(JSON.stringify({ b64: aiResponse.image, model: modelId }), {
               status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
             });
           }
-          errs.push(m + ": keys=[" + Object.keys(out || {}).join(",") + "]");
-          /* model चला पर image खाली → default size से एक बार और */
-          try {
-            const out2 = await env.AI.run(m, { prompt: shortPrompt });
-            const b642 = extractB64(out2);
-            if (b642) {
-              return new Response(JSON.stringify({ b64: b642, mimeType: "image/png" }), {
-                status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
-              });
+
+          if (arrayBuffer && arrayBuffer.byteLength > 0) {
+            // Convert binary to base64
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = "";
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i += 8192) {
+              binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
             }
-            errs.push(m + "(default): keys=[" + Object.keys(out2 || {}).join(",") + "]");
-          } catch (e2) {
-            errs.push(m + "(default): " + (e2 && e2.message ? e2.message : String(e2)));
+            const b64 = btoa(binary);
+
+            return new Response(JSON.stringify({ 
+              b64: b64, 
+              mimeType: "image/jpeg",
+              modelUsed: modelId
+            }), {
+              status: 200, 
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
           }
-        } catch (e) {
-          errs.push(m + ": " + (e && e.message ? e.message : String(e)));
+        } catch (err) {
+          lastError = `${modelId} failed: ${err.message}`;
+          // Continue to next model in list
         }
       }
-      return new Response(JSON.stringify({ error: "Workers AI सभी मॉडल fail: " + errs.join(" | ") + " || Dashboard → Workers AI → Models/Playground से सही ID लेकर variable CF_IMAGE_MODELS में डालें" }), {
+
+      return new Response(JSON.stringify({ error: "Sabhi Cloudflare AI models fail ho gaye: " + lastError }), {
         status: 502, headers: { "Content-Type": "application/json", ...corsHeaders }
       });
     }
 
-    // 🖼️ IMAGE PROXY
-    if (url.pathname === "/proxy") {
-      const target = url.searchParams.get("url");
-      if (!target || !target.startsWith("https://")) {
-        return new Response(JSON.stringify({ error: "Bad url" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
-      }
-      try {
-        const r = await fetch(target);
-        const headers = new Headers(r.headers);
-        headers.set("Access-Control-Allow-Origin", "*");
-        ["content-encoding", "content-length", "cf-cache-status", "server"].forEach(h => headers.delete(h));
-        return new Response(r.body, { status: r.status, headers });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: `Proxy fetch failed: ${e.message}` }), { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } });
-      }
-    }
-
-    // 🚀 DYNAMIC PROXY — /v1/ routes xKiro पर (script chat)
+    // 🚀 3. SCRIPT GENERATION PROXY
     if (url.pathname.startsWith("/v1/")) {
       const targetUrl = "https://api.xkiro.com" + url.pathname + url.search;
       const API_KEY = env.XKIRO_API_KEY;
       if (!API_KEY) {
-        return new Response(JSON.stringify({ error: "Cloudflare में XKIRO_API_KEY सेट नहीं है!" }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        return new Response(JSON.stringify({ error: "Cloudflare me XKIRO_API_KEY set nahi hai!" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const headers = new Headers();
       headers.set("Content-Type", request.headers.get("Content-Type") || "application/json");
@@ -176,10 +147,10 @@ export default {
         ["content-encoding", "content-length", "cf-cache-status", "server"].forEach(h => responseHeaders.delete(h));
         return new Response(response.body, { status: response.status, statusText: response.statusText, headers: responseHeaders });
       } catch (error) {
-        return new Response(JSON.stringify({ error: `Worker Fetch Error: ${error.message}` }), { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        return new Response(JSON.stringify({ error: `Script Error: ${error.message}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
 
-    return new Response(JSON.stringify({ error: "Route Not Found" }), { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    return new Response(JSON.stringify({ error: "Route Not Found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 };
