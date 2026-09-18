@@ -35,8 +35,6 @@
     #thumbImg { width:100%; border-radius:8px; border:1px solid var(--border); margin-bottom:10px; display:block; }
     #convCanvas { width:100%; display:block; touch-action:none; border-radius:8px; border:1px solid var(--border); background:#000; }
     .conv-label { text-align:center; color:#aaa; font-size:0.8rem; margin:6px 0 10px; }
-    .chk-row { display:flex; align-items:center; gap:10px; color:#fff; font-size:0.9rem; margin-bottom:12px; }
-    .chk-row input { width:auto; margin:0; }
 </style>
 </head>
 <body>
@@ -82,10 +80,10 @@
 <div id="thumb-module" class="card hidden">
     <label>🎨 Image Engine चुनें</label>
     <select id="engineSelect">
-        <option value="cf-ai" selected>☁️ Cloudflare Workers AI – FREE (gpt-image-2/2.5 Flare/Sunburst, Qwen3, Grok… कोई login नहीं, ✅ recommended)</option>
+        <option value="cf-ai" selected>☁️ Cloudflare Workers AI – FREE (GPT-2.5 Flare/Sunburst Hindi text सहित, Qwen3, Grok… कोई login नहीं, ✅ recommended)</option>
         <option value="puter-gpt2">🤖 GPT Image 2 – Puter (login ज़रूरी; सिर्फ़ तभी जब Puter में balance हो)</option>
     </select>
-    <p class="hint">💡 Cloudflare Worker सबसे पहले openai/gpt-image-2 → 2.5-flare → 2.5-sunburst आज़माता है (Hindi text वाले)। Success message में CF का exact मॉडल दिखेगा। मॉडल टेक्स्ट न लिखे तो converter में "Hindi टेक्स्ट ओवरले" टिक करें — टेक्स्ट पक्का लगेगा। हर स्टेप पर timeout — अनंत spinner नहीं।</p>
+    <p class="hint">💡 Cloudflare = आपके Worker में आपकी सारी free IDs; सबसे पहले gpt-image-2.5-flare/sunburst चलते हैं जो Hindi टेक्स्ट लिखते हैं। Success message में अब CF का exact मॉडल नाम भी दिखेगा। Fail हो तो दूसरा engine अपने आप। हर स्टेप पर timeout — अनंत spinner नहीं। Image के बाद "16:9 YouTube में बदलें" से drag/zoom करके 1280×720।</p>
 
     <label>Prompt Paste Box</label>
     <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: UPI Tap & Pay&#10;Text: "UPI क्रांति! नए फीचर!"&#10;Concept: Dynamic, futuristic, hand tapping phone on POS machine...&#10;Prompt: A high-angle, cinematic, photorealistic image of a hand holding a modern smartphone...&#10;Branding: "Aryan News Tek"'></textarea>
@@ -116,11 +114,6 @@
         <option value="blur">🖼️ MODE 2: Full Image + Blurred Background (कुछ भी नहीं कटेगा)</option>
     </select>
 
-    <div class="chk-row">
-        <input type="checkbox" id="convTextOverlay" onchange="convRender()">
-        <span>✍️ Hindi टेक्स्ट ओवरले लगाएँ (पक्का टेक्स्ट — जो मॉडल न लिखे तो)</span>
-    </div>
-
     <label>📁 या अपनी Square Image चुनें (optional – gallery से 1536×1536 / 1024×1024)</label>
     <input type="file" id="convFile" accept="image/*" onchange="loadConvFile(this)">
 
@@ -142,7 +135,6 @@ const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
 const PUTER_GPT2 = "openai/gpt-image-2";
 let currentImageUrl = null;
 let cfUsedModel = "";
-window.LAST_PARTS = { main: "", sub: "", brand: "" };
 
 /* ================= TIMEOUT HELPER ================= */
 function withTimeout(factory, ms, label) {
@@ -201,7 +193,7 @@ async function generateScript() {
     }
 }
 
-/* ================= PROMPT BUILDER (safe-zone + parts save for overlay) ================= */
+/* ================= PROMPT BUILDER (सख़्त safe-zone) ================= */
 const hasDev = s => /[\u0900-\u097F]/.test(s);
 function buildFinalPrompt(raw) {
     const quotes = [];
@@ -218,7 +210,6 @@ function buildFinalPrompt(raw) {
     while ((mb = rb.exec(raw))) {
         if (!hasDev(mb[1]) && /[A-Za-z0-9]/.test(mb[1]) && mb[1].length < 40) { brand = mb[1].trim(); break; }
     }
-    window.LAST_PARTS = { main: main, sub: sub, brand: brand };
     let p = raw.replace(/\s+/g, " ").trim();
     p += ". TEXT RENDERING RULES: Render every Devanagari (Hindi) string with PERFECT correct spelling and matras, in bold Indian TV news headline style — thick outline, high contrast, integrated into the design like a professional news thumbnail (ChatGPT-level quality).";
     if (main) p += ` The main Hindi headline must appear EXACTLY as: "${main}" — large, bold, placed in the vertical middle band (38% to 62% of height).`;
@@ -287,7 +278,7 @@ function puterGenerate(prompt, model) {
     }, 90000, "Puter");
 }
 
-/* ================= ENGINE: CLOUDFLARE (150s timeout + मॉडल नाम) ================= */
+/* ================= ENGINE: CLOUDFLARE (150s timeout, मॉडल नाम भी लौटाता है) ================= */
 function cfGenerate(prompt) {
     return withTimeout(async () => {
         const r = await fetch(`${WORKER_URL}/cf/image`, {
@@ -402,72 +393,8 @@ function downloadOriginal() {
     im.src = currentImageUrl;
 }
 
-/* ================= 16:9 CONVERTER + Hindi टेक्स्ट ओवरले ================= */
+/* ================= 16:9 CONVERTER ================= */
 let convImg = null, convZoomV = 1, convPanX = 0.5, convPanY = 0.5;
-
-function drawTextOverlay(ctx, W, H) {
-    const P = window.LAST_PARTS || {};
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    if (P.main) {
-        const maxW = W * 0.92;
-        let size = 150;
-        ctx.font = `900 ${size}px system-ui, sans-serif`;
-        let lines = [P.main];
-        if (ctx.measureText(P.main).width > maxW) {
-            const words = P.main.split(/\s+/);
-            let a = "", b = "";
-            for (const w of words) {
-                if (!b && ctx.measureText((a ? a + " " : "") + w).width <= maxW * 0.62) a = a ? a + " " + w : w;
-                else b = b ? b + " " + w : w;
-            }
-            lines = [a, b].filter(Boolean);
-        }
-        ctx.font = `900 ${size}px system-ui, sans-serif`;
-        const longest = lines.reduce((mm, l) => Math.max(mm, ctx.measureText(l).width), 1);
-        if (longest > maxW) size = Math.floor(size * maxW / longest);
-        size = Math.max(52, size);
-        const lineH = size * 1.14;
-        const startY = H * 0.48 - ((lines.length - 1) / 2) * lineH;
-        for (let i = 0; i < lines.length; i++) {
-            const y = startY + i * lineH;
-            ctx.font = `900 ${size}px system-ui, sans-serif`;
-            ctx.lineJoin = "round";
-            ctx.lineWidth = size * 0.18;
-            ctx.strokeStyle = "#000";
-            ctx.strokeText(lines[i], W / 2, y);
-            const g = ctx.createLinearGradient(0, y - size / 2, 0, y + size / 2);
-            g.addColorStop(0, "#FFE45C");
-            g.addColorStop(1, "#F5B301");
-            ctx.fillStyle = g;
-            ctx.fillText(lines[i], W / 2, y);
-        }
-    }
-    if (P.sub) {
-        const size = 60;
-        ctx.font = `800 ${size}px system-ui, sans-serif`;
-        const tw = ctx.measureText(P.sub).width;
-        const bw = tw + 64, bh = size * 1.55;
-        const bx = W / 2 - bw / 2, by = H * 0.80 - bh / 2;
-        ctx.fillStyle = "#C00000";
-        ctx.fillRect(bx, by, bw, bh);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(P.sub, W / 2, H * 0.80 + 2);
-    }
-    if (P.brand) {
-        const size = 34;
-        ctx.font = `800 ${size}px system-ui, sans-serif`;
-        const tw = ctx.measureText(P.brand).width;
-        const bw = tw + 32, bh = size * 1.7;
-        const bx = W - bw - 16, by = 16;
-        ctx.fillStyle = "rgba(0,0,0,0.78)";
-        ctx.fillRect(bx, by, bw, bh);
-        ctx.fillStyle = "#FFD400";
-        ctx.fillText(P.brand, bx + bw / 2, by + bh / 2 + 1);
-    }
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-}
 
 function openConverter(src) {
     const url = src || currentImageUrl;
@@ -513,7 +440,6 @@ function convRender() {
         const overX = Math.max(0, dw - W), overY = Math.max(0, dh - H);
         ctx.drawImage(convImg, -overX * convPanX, -overY * convPanY, dw, dh);
     }
-    if (document.getElementById('convTextOverlay').checked) drawTextOverlay(ctx, W, H);
 }
 function convZoom(dir) {
     convZoomV = Math.min(2.5, Math.max(1, +(convZoomV + dir * 0.1).toFixed(2)));
