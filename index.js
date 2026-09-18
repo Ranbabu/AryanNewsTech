@@ -67,7 +67,7 @@ export default {
     }
 
     // ============================================================
-    // ☁️ WORKERS AI IMAGE — Hindi-text वाले मॉडल सबसे पहले + पूरा prompt
+    // ☁️ WORKERS AI IMAGE — Puter वाला gpt-image-2/1 भी सबसे पहले
     // POST /cf/image  {prompt}
     // ============================================================
     if (url.pathname === "/cf/image" && request.method === "POST") {
@@ -86,6 +86,8 @@ export default {
 
       const cfg = String(env.CF_IMAGE_MODELS || "").split(",").map(s => s.trim()).filter(Boolean);
       const defaults = [
+        "openai/gpt-image-2",
+        "openai/gpt-image-1",
         "openai/gpt-image-2.5-flare",
         "openai/gpt-image-2.5-sunburst",
         "alibaba/qwen-image-3.0-pro",
@@ -103,8 +105,8 @@ export default {
         if (!b.startsWith("@cf/")) candidates.push("@cf/" + b);
       }
 
-      /* सिर्फ़ पुराने clip-token diffusion मॉडल्स के लिए छोटा prompt;
-         ग़लती से Hindi-text निर्देश न कटें इसलिए बाकी सब को पूरा prompt */
+      /* सिर्फ़ पुराने diffusion मॉडल्स को छोटा prompt; text-मॉडल्स को पूरा prompt
+         (वरना Hindi-text वाले निर्देश कट जाते हैं और image बिना टेक्स्ट बनती है) */
       let shortPrompt = prompt;
       if (shortPrompt.length > 380) shortPrompt = shortPrompt.slice(0, 380).replace(/\s+\S*$/, "");
 
