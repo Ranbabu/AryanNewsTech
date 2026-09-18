@@ -84,9 +84,9 @@
         <option value="puter-nbpro">🍌 Nano Banana Pro (gemini-3-pro-image) – Puter FREE</option>
         <option value="puter-nb">🍌 Nano Banana (gemini-2.5-flash-image) – Puter FREE</option>
         <option value="puter-flux2">⚡ FLUX.2 Pro – Puter FREE</option>
-        <option value="cf-flux">☁️ Cloudflare FLUX (Worker free tier – कोई login/पॉपअप नहीं)</option>
+        <option value="cf-flux">☁️ Cloudflare FLUX (Worker free tier – कोई login/पॉपअप नहीं, सच्चा 16:9)</option>
     </select>
-    <p class="hint">💡 पहली बार Puter पर फ्री login पॉपअप आएगा — allow करें। कोई engine फेल हो तो अपने आप दूसरा ट्राई होता है: Puter → Cloudflare FLUX। 1280×720 डाउनलोड अब इमेज काटेगा नहीं (पूरी इमेज + ब्लर बैकग्राउंड)। काम न करने वाले engines (sensenova/paid) हटा दिए गए हैं।</p>
+    <p class="hint">💡 पहली बार Puter पर फ्री login पॉपअप आएगा — allow करें। कोई engine फेल हो तो अपने आप दूसरा ट्राई होता है और status में असली वजह दिखती है। 1280×720 डाउनलोड = पूरा फ्रेम, कोई ब्लर बार नहीं, टेक्स्ट safe-zone में रहने से कटेगा नहीं। Gemini/paid/sensenova engines हटा दिए गए (काम नहीं करते थे)।</p>
 
     <label>Prompt Paste Box</label>
     <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: UPI Tap & Pay&#10;Text: "UPI क्रांति! नए फीचर!"&#10;Concept: Dynamic, futuristic, hand tapping phone on POS machine...&#10;Prompt: A high-angle, cinematic, photorealistic image of a hand holding a modern smartphone...&#10;Branding: "Aryan News Tek"'></textarea>
@@ -103,7 +103,7 @@
     <div id="thumbResult" class="hidden">
         <img id="thumbImg" alt="YouTube Thumbnail">
         <div class="btn-group">
-            <button class="btn-copy" onclick="downloadImage(true)">📐 1280×720 Download (बिना कटे)</button>
+            <button class="btn-copy" onclick="downloadImage(true)">📐 1280×720 Full-Frame Download (कोई बार नहीं)</button>
             <button class="btn-secondary" onclick="downloadImage(false)">⬇️ Original PNG</button>
         </div>
     </div>
@@ -168,7 +168,7 @@ async function generateScript() {
     }
 }
 
-/* ================= PROMPT BUILDER ================= */
+/* ================= PROMPT BUILDER (safe-zone rule के साथ) ================= */
 const hasDev = s => /[\u0900-\u097F]/.test(s);
 function buildFinalPrompt(raw) {
     const quotes = [];
@@ -190,7 +190,8 @@ function buildFinalPrompt(raw) {
     if (main) p += ` The main Hindi headline must appear EXACTLY as: "${main}" — large, bold, dominant placement.`;
     if (sub)  p += ` The supporting Hindi line must appear EXACTLY as: "${sub}" — smaller, on a contrasting color banner.`;
     if (brand) p += ` Small corner branding text EXACTLY: "${brand}".`;
-    p += " No distorted or invented Devanagari characters, no extra text, no watermark, no newspaper screenshots. Wide 16:9 YouTube thumbnail composition (landscape), photorealistic, cinematic news lighting. Keep all text inside the central safe area.";
+    p += " SAFE-ZONE RULE: The final image will be center-cropped to 16:9 landscape (YouTube thumbnail). Therefore place ALL headlines, banners, logos, prices and every text element strictly inside the central safe zone — vertically between 22% and 78% of the image height. Keep the top 20% and bottom 20% as pure background artwork with NO text.";
+    p += " No distorted or invented Devanagari characters, no extra text, no watermark, no newspaper screenshots. Wide 16:9 YouTube thumbnail composition, photorealistic, cinematic news lighting.";
     return p;
 }
 
@@ -227,10 +228,9 @@ function ensurePuterAuthSync() {
     });
 }
 
-/* ================= ENGINE: PUTER (FIXED: landscape size + सभी return types handle) ================= */
+/* ================= ENGINE: PUTER (landscape try + सभी return types handle) ================= */
 async function generateViaPuter(prompt, model) {
     if (!window.puter || !puter.ai || !puter.ai.txt2img) throw new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउज़र जाँचें");
-    /* ✅ OpenAI मॉडल्स को landscape size भेजो ताकि कंपोज़िशन चौड़ी बने */
     const extra = model.startsWith("openai/") ? { size: "1536x1024" }
                 : model.startsWith("google/") ? { aspectRatio: "16:9" } : {};
     const attempts = [
@@ -245,14 +245,14 @@ async function generateViaPuter(prompt, model) {
     }
     if (!res) throw lastErr || new Error("Puter से image नहीं मिली (login पॉपअप बंद न करें)");
     if (typeof res === "string") return res;
-    if (res instanceof HTMLImageElement) return res.src;      // ✅ असली fix: docs HTMLImageElement देते हैं
+    if (res instanceof HTMLImageElement) return res.src;
     if (res instanceof Blob || res instanceof File) return URL.createObjectURL(res);
     if (res.src) return res.src;
     if (res.image && res.image.src) return res.image.src;
     throw new Error("Puter response का format समझ नहीं आया");
 }
 
-/* ================= ENGINE: CLOUDFLARE WORKERS AI (FLUX free) ================= */
+/* ================= ENGINE: CLOUDFLARE WORKERS AI (FLUX free, सच्चा 16:9) ================= */
 async function generateViaCF(prompt) {
     const r = await fetch(`${WORKER_URL}/cf/image`, {
         method: "POST",
@@ -264,7 +264,7 @@ async function generateViaCF(prompt) {
     return `data:${d.mimeType || "image/png"};base64,${d.b64}`;
 }
 
-/* ================= GENERATE THUMBNAIL (Puter → CF FLUX chain) ================= */
+/* ================= GENERATE THUMBNAIL (Puter → CF FLUX, असली error दिखेगा) ================= */
 async function generateThumbnail() {
     const raw = document.getElementById('promptBox').value.trim();
     if (!raw) return alert("कृपया Prompt Paste Box में प्रॉन्प्ट पेस्ट करें!");
@@ -284,7 +284,7 @@ async function generateThumbnail() {
     setStatus("Request तैयार हो रही है...");
 
     let puterAuth = null;
-    if (PUTER_MODELS[engine]) puterAuth = ensurePuterAuthSync();   // popup user-click के अंदर
+    if (PUTER_MODELS[engine]) puterAuth = ensurePuterAuthSync();
 
     startTimer();
 
@@ -308,7 +308,8 @@ async function generateThumbnail() {
             try { finalUrl = await fn(); usedEngine = label; break; }
             catch (e) {
                 errors.push(`${label}: ${e.message}`);
-                if (i + 1 < steps.length) setStatus(`⚠️ ${label} fail — ${steps[i + 1][0]} ट्राई कर रहे हैं...`);
+                setStatus(`⚠️ ${label} fail: ${e.message}`);
+                if (i + 1 < steps.length) { await sleep(3000); setStatus(`↻ ${steps[i + 1][0]} ट्राई कर रहे हैं...`); }
             }
         }
         if (!finalUrl) throw new Error("सभी engines fail हो गए:\n" + errors.join("\n"));
@@ -330,24 +331,12 @@ async function generateThumbnail() {
     }
 }
 
-/* ================= 1280×720 NO-CROP (पूरी इमेज + ब्लर बैकग्राउंड) ================= */
+/* ================= 1280×720 FULL-FRAME (center cover-crop, कोई बार नहीं) ================= */
 function fit1280x720(im) {
     const c = document.createElement('canvas');
     c.width = 1280; c.height = 720;
     const ctx = c.getContext('2d');
-    /* बैकग्राउंड: उसी इमेज का ब्लर + डार्क cover-fill */
-    let filterOK = false;
-    try { ctx.filter = "blur(40px) brightness(0.55)"; filterOK = String(ctx.filter).indexOf("blur") !== -1; } catch (e) { filterOK = false; }
-    if (filterOK) {
-        const bs = Math.max(1280 / im.width, 720 / im.height) * 1.15;
-        const bw = im.width * bs, bh = im.height * bs;
-        ctx.drawImage(im, (1280 - bw) / 2, (720 - bh) / 2, bw, bh);
-        ctx.filter = "none";
-    } else {
-        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 1280, 720);
-    }
-    /* फोरग्राउंड: पूरी इमेज बिना काटे (contain fit) */
-    const s = Math.min(1280 / im.width, 720 / im.height);
+    const s = Math.max(1280 / im.width, 720 / im.height);
     const dw = im.width * s, dh = im.height * s;
     ctx.drawImage(im, (1280 - dw) / 2, (720 - dh) / 2, dw, dh);
     return c;
@@ -369,23 +358,17 @@ function downloadImage(forceResize) {
     im.crossOrigin = "anonymous";
     im.onload = () => {
         try {
-            if (forceResize) {
-                const c = fit1280x720(im);
-                c.toBlob(blob => {
-                    const u = URL.createObjectURL(blob);
-                    finish(u, "youtube-thumbnail-1280x720.png");
-                    setTimeout(() => URL.revokeObjectURL(u), 5000);
-                }, "image/png");
-            } else {
-                const c = document.createElement('canvas');
-                c.width = im.width; c.height = im.height;
-                c.getContext('2d').drawImage(im, 0, 0);
-                c.toBlob(blob => {
-                    const u = URL.createObjectURL(blob);
-                    finish(u, "thumbnail-original-" + Date.now() + ".png");
-                    setTimeout(() => URL.revokeObjectURL(u), 5000);
-                }, "image/png");
-            }
+            const c = forceResize ? fit1280x720(im) : (() => {
+                const cc = document.createElement('canvas');
+                cc.width = im.width; cc.height = im.height;
+                cc.getContext('2d').drawImage(im, 0, 0);
+                return cc;
+            })();
+            c.toBlob(blob => {
+                const u = URL.createObjectURL(blob);
+                finish(u, forceResize ? "youtube-thumbnail-1280x720.png" : "thumbnail-original-" + Date.now() + ".png");
+                setTimeout(() => URL.revokeObjectURL(u), 5000);
+            }, "image/png");
         } catch (e) { window.open(currentImageUrl, "_blank"); }
     };
     im.onerror = () => window.open(currentImageUrl, "_blank");
