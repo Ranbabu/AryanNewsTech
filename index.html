@@ -64,7 +64,7 @@
     <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज़ टेक। आज की टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज़ एंकर के पढ़ने के अंदाज़ में लिखें।</textarea>
 
     <button id="generateBtn" onclick="generateScript()">Generate Script</button>
-    <div id="scriptLoader" style="display:none; text-align:center; color:var(--accent); font-size:0.9rem; margin:10px 0;">Generating... Please wait.</div>
+    <div id="scriptLoader" style="display:none; text-align:center; color:var(--accent); font-size:0.9rem; margin:-10px 0 15px;">Generating... Please wait.</div>
 
     <label style="margin-top:15px;">Output Script</label>
     <textarea id="scriptOutput" placeholder="Your generated script will appear here..."></textarea>
@@ -76,17 +76,23 @@
 
 <!-- ========== MODULE 2: THUMBNAIL ========== -->
 <div id="thumb-module" class="card hidden">
-    <label>🎨 Image Engine चुनें</label>
+    <label>🎨 Image Engine चुनें (सभी verified free models)</label>
     <select id="engineSelect">
-        <option value="pollinations-flux" selected>⚡ FLUX Pro 16:9 (100% FREE – No Login, No Key – सबसे तेज़)</option>
-        <option value="puter-native">🤖 Puter.js AI (100% FREE Cloud Engine)</option>
-        <option value="sensenova">🆓 sensenova-u1.5-lite (xKiro API)</option>
-        <option value="gemini">🍌 Google Gemini Imagen (Worker Google API)</option>
+        <option value="puter-gpt2" selected>🤖 GPT Image 2 – Puter FREE (Hindi text सबसे बेस्ट, कोई key नहीं)</option>
+        <option value="puter-gpt1">🤖 GPT Image 1 – Puter FREE</option>
+        <option value="puter-nb2">🍌 Nano Banana 2 (gemini-3.1-flash-image) – Puter FREE</option>
+        <option value="puter-nbpro">🍌 Nano Banana Pro (gemini-3-pro-image) – Puter FREE</option>
+        <option value="puter-nb">🍌 Nano Banana (gemini-2.5-flash-image) – Puter FREE</option>
+        <option value="puter-flux2">⚡ FLUX.2 Pro – Puter FREE</option>
+        <option value="cf-flux">☁️ Cloudflare FLUX (Worker free tier – कोई login/पॉपअप नहीं)</option>
+        <option value="sensenova">🆓 sensenova-u1.5-lite (xKiro FREE – बिना login backup)</option>
+        <option value="gpt-image">💰 GPT Image via xKiro (≈₹0.85/image – wallet बैलेंस ज़रूरी)</option>
+        <option value="nano2">🍌 Nano Banana 2 via Google API (सिर्फ़ paid Google billing)</option>
     </select>
-    <p class="hint">💡 <b>FLUX Pro</b> बिना किसी रुकावट के मोबाइल और कंप्यूटर दोनों पर तुरंत काम करता है और न्यूज़ थंबनेल टेक्स्ट बिल्कुल साफ़ बनाता है।</p>
+    <p class="hint">💡 पहली बार Puter इंजन पर फ्री Puter login पॉपअप आएगा (कोई कार्ड नहीं) — पॉपअप ब्लॉकर allow करें। कोई भी इंजन फेल हो तो अपने आप अगला ट्राई होता है: Puter → Cloudflare FLUX → sensenova FREE। Pollinations अब API key माँगता है इसलिए हटा दिया गया।</p>
 
     <label>Prompt Paste Box</label>
-    <textarea id="promptBox" style="min-height:160px;" placeholder='Keyword: UPI Tap & Pay&#10;Text: "UPI क्रांति! नए फीचर!"&#10;Concept: Dynamic, futuristic, hand tapping phone on POS machine...&#10;Prompt: A high-angle, cinematic, photorealistic image of a hand holding a modern smartphone...&#10;Branding: "Aryan News Tek"'></textarea>
+    <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: UPI Tap & Pay&#10;Text: "UPI क्रांति! नए फीचर!"&#10;Concept: Dynamic, futuristic, hand tapping phone on POS machine...&#10;Prompt: A high-angle, cinematic, photorealistic image of a hand holding a modern smartphone...&#10;Branding: "Aryan News Tek"'></textarea>
 
     <button id="thumbBtn" onclick="generateThumbnail()">🎨 Generate Thumbnail</button>
 
@@ -100,14 +106,28 @@
     <div id="thumbResult" class="hidden">
         <img id="thumbImg" alt="YouTube Thumbnail">
         <div class="btn-group">
-            <button class="btn-copy" onclick="downloadImage(false)">⬇️ Download Direct</button>
-            <button class="btn-secondary" onclick="downloadImage(true)">📐 1280×720 HD Download</button>
+            <button class="btn-copy" onclick="downloadImage(false)">⬇️ Download PNG</button>
+            <button class="btn-secondary" onclick="downloadImage(true)">📐 1280×720 Download</button>
         </div>
     </div>
 </div>
 
 <script>
 const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
+const IMG_SIZE_XKIRO = "1792x1024";
+const XKIRO_MODEL_IDS = {
+    "sensenova": "sensenova/sensenova-u1.5-lite",
+    "gpt-image": "gpt-image"
+};
+/* ✅ Puter के ऑफिशियल docs से verified सही model IDs */
+const PUTER_MODELS = {
+    "puter-gpt2":  "openai/gpt-image-2",
+    "puter-gpt1":  "openai/gpt-image-1",
+    "puter-nb2":   "google/gemini-3.1-flash-image-preview",
+    "puter-nbpro": "google/gemini-3-pro-image-preview",
+    "puter-nb":    "google/gemini-2.5-flash-image",
+    "puter-flux2": "black-forest-labs/flux-2-pro"
+};
 let currentImageUrl = null;
 
 /* ================= TAB SWITCH ================= */
@@ -117,7 +137,7 @@ function switchTab(tab) {
         document.getElementById('tab-' + t).classList.remove('active');
     });
     document.getElementById(tab + '-module').classList.remove('hidden');
-    document.getElementById('tab-' + tab).classList.add('active');
+    document.getElementById(tab + '-tab-fix' in window ? tab : 'tab-' + tab).classList.add('active');
 }
 
 /* ================= SCRIPT MODULE ================= */
@@ -128,7 +148,6 @@ function copyScript() {
     document.execCommand("copy");
     alert("✅ स्क्रिप्ट कॉपी हो गई!");
 }
-
 async function generateScript() {
     let customModelInput = document.getElementById('customModel').value.trim();
     let finalModel = customModelInput ? customModelInput : document.getElementById('modelSelect').value;
@@ -175,18 +194,23 @@ function buildFinalPrompt(raw) {
         if (!hasDev(mb[1]) && /[A-Za-z0-9]/.test(mb[1]) && mb[1].length < 40) { brand = mb[1].trim(); break; }
     }
     let p = raw.replace(/\s+/g, " ").trim();
-    p += ". Clean YouTube thumbnail style, 16:9 ratio, breaking news layout, high contrast cinematic lighting.";
-    if (main) p += ` Large bold Hindi headline text: "${main}".`;
-    if (sub)  p += ` Supporting banner text: "${sub}".`;
-    if (brand) p += ` Small corner logo: "${brand}".`;
+    p += ". TEXT RENDERING RULES: Render every Devanagari (Hindi) string with PERFECT correct spelling and matras, in bold Indian TV news headline style — thick outline, high contrast, integrated into the design like a professional news thumbnail (ChatGPT-level quality).";
+    if (main) p += ` The main Hindi headline must appear EXACTLY as: "${main}" — large, bold, dominant placement.`;
+    if (sub)  p += ` The supporting Hindi line must appear EXACTLY as: "${sub}" — smaller, on a contrasting color banner.`;
+    if (brand) p += ` Small corner branding text EXACTLY: "${brand}".`;
+    p += " No distorted or invented Devanagari characters, no extra text, no watermark, no newspaper screenshots. 16:9 YouTube thumbnail composition, photorealistic, cinematic news lighting.";
     return p;
 }
 
-/* ================= TIMER & STATUS ================= */
+/* ================= SPINNER + TIMER ================= */
 let timerInterval = null, startTime = 0;
 function fmtClock(ms) {
     const s = Math.floor(ms / 1000);
     return `⏱️ ${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}
+function fmtHuman(ms) {
+    const s = Math.round(ms / 1000);
+    return s < 60 ? `${s} सेकंड` : `${Math.floor(s / 60)} मिनट ${s % 60} सेकंड`;
 }
 function startTimer() {
     stopTimer();
@@ -200,69 +224,142 @@ function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInt
 function setStatus(msg) { document.getElementById('statusText').textContent = msg; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* ================= ENGINE 1: POLLINATIONS FLUX (100% FREE, NO KEY, NO LOGIN) ================= */
-async function generateViaPollinations(prompt) {
-    setStatus("⚡ FLUX Engine से थंबनेल तैयार हो रहा है...");
-    const seed = Math.floor(Math.random() * 99999999);
-    const encodedPrompt = encodeURIComponent(prompt);
-    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&model=flux&seed=${seed}&nologo=true`;
-    
-    // Test fetch and convert to blob
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`FLUX Server error (${res.status})`);
-    const blob = await res.blob();
-    return URL.createObjectURL(blob);
-}
-
-/* ================= ENGINE 2: PUTER.JS (FIXED) ================= */
-async function generateViaPuter(prompt) {
-    if (!window.puter || !puter.ai || !puter.ai.txt2img) throw new Error("Puter.js लोड नहीं हुआ!");
-    setStatus("🤖 Puter AI इंजन इमेज बना रहा है...");
-    
-    // Puter returns an <img> HTML element
-    const imgElement = await puter.ai.txt2img(prompt);
-    if (!imgElement || !imgElement.src) throw new Error("Puter से इमेज नहीं मिली");
-    return imgElement.src;
-}
-
-/* ================= ENGINE 3: xKiro SENSENOVA ================= */
-async function generateViaXkiro(prompt) {
-    setStatus("🆓 sensenova पर जॉब भेजी जा रही है...");
-    const r1 = await fetch(`${WORKER_URL}/v1/images/generations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "sensenova/sensenova-u1.5-lite", prompt: prompt, n: 1, size: "1792x1024" })
+/* ================= PUTER AUTH (popup user-click के अंदर खुले) ================= */
+function ensurePuterAuthSync() {
+    if (!window.puter || !puter.auth) return Promise.reject(new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउज़र जाँचें"));
+    let signed = false;
+    try { signed = !!puter.auth.isSignedIn(); } catch (e) {}
+    if (signed) return Promise.resolve();
+    return puter.auth.signIn().then(() => {}).catch(e => {
+        throw new Error("Puter login पॉपअप ब्लॉक/रद्द हुआ — ब्राउज़र में pop-ups allow करें");
     });
-    const job = await r1.json();
-    if (!r1.ok || !job.id) throw new Error(job.error?.message || "Job creation failed");
-
-    // Poll status
-    const deadline = Date.now() + 180000;
-    while (Date.now() < deadline) {
-        await sleep(3000);
-        setStatus("🎨 इमेज रेंडर हो रही है...");
-        const r2 = await fetch(`${WORKER_URL}/v1/images/generations/${job.id}`);
-        const st = await r2.json();
-        if (st.status === "succeeded" && st.data?.[0]?.url) return st.data[0].url;
-        if (st.status === "failed") throw new Error("sensenova generation failed");
-    }
-    throw new Error("Timeout! कृपया दोबारा कोशिश करें।");
 }
 
-/* ================= ENGINE 4: GEMINI ================= */
-async function generateViaGemini(prompt) {
-    setStatus("🍌 Gemini API से इमेज बनाई जा रही है...");
-    const r = await fetch(`${WORKER_URL}/gemini/image?model=gemini-2.5-flash-image`, {
+/* ================= ENGINE: PUTER.JS (FIXED — HTMLImageElement/data-URL/Blob सभी handle) ================= */
+async function generateViaPuter(prompt, model) {
+    if (!window.puter || !puter.ai || !puter.ai.txt2img) throw new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउज़र जाँचें");
+    let res = null;
+    try {
+        res = await puter.ai.txt2img(prompt, { model: model });          // नया signature (prompt, options)
+    } catch (e) {
+        res = await puter.ai.txt2img(prompt, false, { model: model });   // पुराना signature fallback
+    }
+    if (!res) throw new Error("Puter से image नहीं मिली (login पॉपअप बंद न करें)");
+    if (typeof res === "string") return res;                              // data URL / URL
+    if (res instanceof HTMLImageElement) return res.src;                  // ✅ असली fix: docs HTMLImageElement रिटर्न करते हैं
+    if (typeof HTMLImageElement !== "undefined" && res.constructor && res.constructor.name === "HTMLImageElement" && res.src) return res.src;
+    if (res instanceof Blob || res instanceof File) return URL.createObjectURL(res);
+    if (res.src) return res.src;
+    if (res.image && res.image.src) return res.image.src;
+    throw new Error("Puter response का format समझ नहीं आया");
+}
+
+/* ================= ENGINE: CLOUDFLARE WORKERS AI (FLUX – free tier, कोई login नहीं) ================= */
+async function generateViaCF(prompt) {
+    const r = await fetch(`${WORKER_URL}/cf/image`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt })
     });
-    const d = await r.json();
-    if (r.ok && d.b64) return `data:${d.mimeType || "image/png"};base64,${d.b64}`;
-    throw new Error(d.error || "Gemini image failed");
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.b64) throw new Error(d.error || `CF FLUX error (HTTP ${r.status})`);
+    return `data:${d.mimeType || "image/png"};base64,${d.b64}`;
 }
 
-/* ================= GENERATE THUMBNAIL MAIN ================= */
+/* ================= ENGINE: xKiro (auto job-retry के साथ) ================= */
+async function xkiroFlow(engineKey, prompt, maxJobs = 2) {
+    const model = XKIRO_MODEL_IDS[engineKey] || engineKey;
+    let lastErr = null;
+    for (let j = 0; j < maxJobs; j++) {
+        try {
+            const job = await createImageJob(prompt, model);
+            return await pollImageJob(job.id);
+        } catch (e) {
+            lastErr = e;
+            if (/does not exist|wallet|balance|insufficient|quota|allowance|blocked/i.test(e.message)) throw e;
+            if (j + 1 < maxJobs) setStatus(`⚠️ Job fail हुआ — auto-retry (${j + 2}/${maxJobs}) नया job शुरू...`);
+        }
+    }
+    throw lastErr;
+}
+async function createImageJob(prompt, model) {
+    let lastErr = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const r1 = await fetch(`${WORKER_URL}/v1/images/generations`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ model: model, prompt: prompt, n: 1, size: IMG_SIZE_XKIRO })
+            });
+            const job = await r1.json();
+            if (!r1.ok || !job.id) {
+                const msg = job.error?.message || job.error || `Job create नहीं हुआ (HTTP ${r1.status})`;
+                if (r1.status >= 400 && r1.status < 500) throw new Error(msg);
+                throw Object.assign(new Error(msg), { retryable: true });
+            }
+            return job;
+        } catch (e) {
+            lastErr = e;
+            if (!e.retryable || attempt === 1) throw e;
+            setStatus("⚠️ नेटवर्क गड़बड़ी — दोबारा कोशिश हो रही है...");
+            await sleep(2500);
+        }
+    }
+    throw lastErr;
+}
+async function pollImageJob(id) {
+    const deadline = Date.now() + 6 * 60 * 1000;
+    let waitMs = 1500;
+    while (Date.now() < deadline) {
+        await sleep(waitMs);
+        waitMs = Math.min(waitMs * 1.4, 6000);
+        setStatus("🎨 Image render हो रही है... कतार में लगी है");
+        let st = null;
+        for (let attempt = 0; attempt < 3 && !st; attempt++) {
+            try {
+                const r2 = await fetch(`${WORKER_URL}/v1/images/generations/${id}`);
+                st = await r2.json();
+            } catch (e) { await sleep(2000); }
+        }
+        if (!st) continue;
+        if (st.status === "succeeded") return st.data && st.data[0] && st.data[0].url;
+        if (st.status === "failed" || st.status === "blocked") throw new Error(st.error?.message || ("Job " + st.status));
+        setStatus("🎨 Image render हो रही है... (" + st.status + ")");
+    }
+    throw new Error("Image job समय सीमा में पूरा नहीं हुआ — दोबारा कोशिश करें");
+}
+
+/* ================= ENGINE: Google Gemini (paid billing only) ================= */
+async function generateViaGemini(prompt) {
+    const models = ["gemini-3.1-flash-image", "gemini-3.1-flash-image-preview", "gemini-2.5-flash-image"];
+    let lastErr = null;
+    for (const mdl of models) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                setStatus(`🍌 ${mdl} image बना रहा है...`);
+                const r = await fetch(`${WORKER_URL}/gemini/image?model=${mdl}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt })
+                });
+                const d = await r.json();
+                if (r.ok && d.b64) return `data:${d.mimeType || "image/png"};base64,${d.b64}`;
+                const msg = d.error || `HTTP ${r.status}`;
+                lastErr = new Error(msg);
+                if (/not found|does not exist|unsupported|not supported/i.test(msg)) break;
+                if (/quota|limit|billing/i.test(msg)) throw lastErr;
+                if (attempt === 0) { setStatus("⚠️ नेटवर्क गड़बड़ी — दोबारा कोशिश..."); await sleep(2500); }
+            } catch (e) {
+                lastErr = e;
+                if (/quota|limit|billing/i.test(e.message)) throw e;
+                if (attempt === 0) { await sleep(2500); }
+            }
+        }
+    }
+    throw lastErr || new Error("Gemini से image नहीं मिली");
+}
+
+/* ================= GENERATE THUMBNAIL (स्मार्ट fallback chain) ================= */
 async function generateThumbnail() {
     const raw = document.getElementById('promptBox').value.trim();
     if (!raw) return alert("कृपया Prompt Paste Box में प्रॉन्प्ट पेस्ट करें!");
@@ -279,49 +376,59 @@ async function generateThumbnail() {
     result.classList.add('hidden');
     success.classList.add('hidden');
     statusRow.classList.remove('hidden');
+    setStatus("Request तैयार हो रही है...");
+
+    /* ✅ Puter login पॉपअप click-handler के अंदर synchronous खुले (वरना mobile पर block) */
+    let puterAuth = null;
+    if (PUTER_MODELS[engine]) puterAuth = ensurePuterAuthSync();
+
     startTimer();
 
-    let finalUrl = null;
-    let usedEngine = engine;
+    /* fallback chain बनाओ */
+    const steps = [];
+    const puterStep = m => [`${m} (Puter FREE)`, async () => { if (puterAuth) await puterAuth; return generateViaPuter(prompt, m); }];
+    const cfStep    = () => ["Cloudflare FLUX (free)", () => generateViaCF(prompt)];
+    const sensStep  = () => ["sensenova FREE", () => xkiroFlow("sensenova", prompt)];
 
+    if (PUTER_MODELS[engine]) {
+        steps.push(puterStep(PUTER_MODELS[engine]));
+        steps.push(cfStep());
+        steps.push(sensStep());
+    } else if (engine === "cf-flux") {
+        steps.push(cfStep());
+        steps.push(sensStep());
+    } else if (engine === "sensenova") {
+        steps.push(sensStep());
+        steps.push(cfStep());
+    } else if (engine === "gpt-image") {
+        steps.push(["GPT Image (xKiro paid)", () => xkiroFlow("gpt-image", prompt)]);
+        steps.push(sensStep());
+    } else {
+        steps.push(["Gemini (Google paid)", () => generateViaGemini(prompt)]);
+        steps.push(sensStep());
+    }
+
+    let finalUrl = null, usedEngine = "";
+    const errors = [];
     try {
-        if (engine === "pollinations-flux") {
-            finalUrl = await generateViaPollinations(prompt);
-            usedEngine = "FLUX Pro 16:9 (Free)";
-        } else if (engine === "puter-native") {
+        for (let i = 0; i < steps.length; i++) {
+            const [label, fn] = steps[i];
+            setStatus(`🎨 ${label} से image बना रहे हैं... (${i + 1}/${steps.length})`);
             try {
-                finalUrl = await generateViaPuter(prompt);
-                usedEngine = "Puter AI (Free)";
+                finalUrl = await fn();
+                usedEngine = label;
+                break;
             } catch (e) {
-                setStatus("⚠️ Puter असफल — तुरंत FLUX Pro से बना रहे हैं...");
-                finalUrl = await generateViaPollinations(prompt);
-                usedEngine = "FLUX Pro (Auto-Fallback)";
-            }
-        } else if (engine === "sensenova") {
-            try {
-                finalUrl = await generateViaXkiro(prompt);
-                usedEngine = "sensenova (xKiro)";
-            } catch (e) {
-                setStatus("⚠️ xKiro असफल — तुरंत FLUX Pro से बना रहे हैं...");
-                finalUrl = await generateViaPollinations(prompt);
-                usedEngine = "FLUX Pro (Auto-Fallback)";
-            }
-        } else if (engine === "gemini") {
-            try {
-                finalUrl = await generateViaGemini(prompt);
-                usedEngine = "Gemini Imagen";
-            } catch (e) {
-                setStatus("⚠️ Gemini कोटा समाप्त — तुरंत FLUX Pro से बना रहे हैं...");
-                finalUrl = await generateViaPollinations(prompt);
-                usedEngine = "FLUX Pro (Auto-Fallback)";
+                errors.push(`${label}: ${e.message}`);
+                if (i + 1 < steps.length) setStatus(`⚠️ ${label} fail — ${steps[i + 1][0]} ट्राई कर रहे हैं...`);
             }
         }
+        if (!finalUrl) throw new Error("सभी engines fail हो गए:\n" + errors.join("\n"));
 
-        if (!finalUrl) throw new Error("इमेज URL प्राप्त नहीं हुआ");
-
+        const elapsed = Date.now() - startTime;
         stopTimer();
         statusRow.classList.add('hidden');
-        success.textContent = `✅ थंबनेल तैयार! Engine: ${usedEngine}`;
+        success.textContent = `✅ Image तैयार! कुल समय: ${fmtHuman(elapsed)} | Engine: ${usedEngine}`;
         success.classList.remove('hidden');
         currentImageUrl = finalUrl;
         img.src = finalUrl;
@@ -329,13 +436,13 @@ async function generateThumbnail() {
     } catch (error) {
         stopTimer();
         statusRow.classList.add('hidden');
-        alert("⚠️ Error: " + error.message);
+        alert("⚠️ Thumbnail Error: " + error.message + "\n(लगा समय: " + fmtHuman(Date.now() - startTime) + ")");
     } finally {
         btn.disabled = false;
     }
 }
 
-/* ================= DOWNLOAD FUNCTION ================= */
+/* ================= DOWNLOAD ================= */
 function downloadImage(forceResize) {
     if (!currentImageUrl) return alert("पहले थंबनेल जनरेट करें!");
     const finish = (url, name) => {
@@ -343,12 +450,10 @@ function downloadImage(forceResize) {
         a.href = url; a.download = name;
         document.body.appendChild(a); a.click(); a.remove();
     };
-
-    if (!forceResize && currentImageUrl.startsWith("blob:")) {
-        finish(currentImageUrl, `thumbnail-${Date.now()}.png`);
+    if (!forceResize && currentImageUrl.startsWith("data:")) {
+        finish(currentImageUrl, "thumbnail-" + Date.now() + ".png");
         return;
     }
-
     const im = new Image();
     im.crossOrigin = "anonymous";
     im.onload = () => {
@@ -356,7 +461,9 @@ function downloadImage(forceResize) {
             const c = document.createElement('canvas');
             c.width = 1280; c.height = 720;
             const ctx = c.getContext('2d');
-            ctx.drawImage(im, 0, 0, 1280, 720);
+            const scale = Math.max(1280 / im.width, 720 / im.height);
+            const dw = im.width * scale, dh = im.height * scale;
+            ctx.drawImage(im, (1280 - dw) / 2, (720 - dh) / 2, dw, dh);
             c.toBlob(blob => {
                 const u = URL.createObjectURL(blob);
                 finish(u, "youtube-thumbnail-1280x720.png");
