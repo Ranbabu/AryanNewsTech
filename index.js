@@ -67,7 +67,7 @@ export default {
     }
 
     // ============================================================
-    // ☁️ WORKERS AI IMAGE — आपके account वाली IDs (Hindi-text वाले पहले)
+    // ☁️ WORKERS AI IMAGE — Hindi-text वाले मॉडल सबसे पहले + पूरा prompt
     // POST /cf/image  {prompt}
     // ============================================================
     if (url.pathname === "/cf/image" && request.method === "POST") {
@@ -103,31 +103,32 @@ export default {
         if (!b.startsWith("@cf/")) candidates.push("@cf/" + b);
       }
 
+      /* सिर्फ़ पुराने clip-token diffusion मॉडल्स के लिए छोटा prompt;
+         ग़लती से Hindi-text निर्देश न कटें इसलिए बाकी सब को पूरा prompt */
       let shortPrompt = prompt;
-      if (shortPrompt.length > 400) shortPrompt = shortPrompt.slice(0, 400).replace(/\s+\S*$/, "");
+      if (shortPrompt.length > 380) shortPrompt = shortPrompt.slice(0, 380).replace(/\s+\S*$/, "");
 
       const errs = [];
       for (const m of candidates) {
-        /* पहले 16:9 size से, fail हो तो default size से */
-        const inputs = [{ prompt: shortPrompt, width: 1024, height: 576 }, { prompt: shortPrompt }];
-        let got = false;
+        const isDiffusion = /diffusion|dreamshaper|lcm/i.test(m);
+        const usePrompt = isDiffusion ? shortPrompt : prompt;
+        const inputs = [{ prompt: usePrompt, width: 1024, height: 576 }, { prompt: usePrompt }];
         for (const input of inputs) {
           try {
             const out = await env.AI.run(m, input);
             const b64 = extractB64(out);
             if (b64) {
-              return new Response(JSON.stringify({ b64: b64, mimeType: "image/png" }), {
+              return new Response(JSON.stringify({ b64: b64, mimeType: "image/png", model: m }), {
                 status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
               });
             }
             errs.push(m + ": keys=[" + Object.keys(out || {}).join(",") + "]");
-            got = true; /* model चला था, image खाली → default size आज़माओ */
           } catch (e) {
-            errs.push(m + ": " + (e && e.message ? e.message : String(e)));
-            if (/5007|no such model/i.test(e && e.message ? e.message : "")) break; /* यह ID exists ही नहीं → अगली ID */
+            const msg = (e && e.message) ? e.message : String(e);
+            errs.push(m + ": " + msg);
+            if (/5007|no such model/i.test(msg)) break;
           }
         }
-        if (got) continue;
       }
       return new Response(JSON.stringify({ error: "Workers AI सभी मॉडल fail: " + errs.join(" | ") }), {
         status: 502, headers: { "Content-Type": "application/json", ...corsHeaders }
