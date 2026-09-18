@@ -33,6 +33,8 @@
     #timerText { font-variant-numeric:tabular-nums; color:var(--accent); font-weight:bold; font-size:0.95rem; }
     .success-msg { text-align:center; color:var(--accent); font-size:0.9rem; margin:0 0 15px; font-weight:bold; }
     #thumbImg { width:100%; border-radius:8px; border:1px solid var(--border); margin-bottom:10px; display:block; }
+    #convCanvas { width:100%; display:block; touch-action:none; border-radius:8px; border:1px solid var(--border); background:#000; }
+    .conv-label { text-align:center; color:#aaa; font-size:0.8rem; margin:6px 0 10px; }
 </style>
 </head>
 <body>
@@ -76,17 +78,12 @@
 
 <!-- ========== MODULE 2: THUMBNAIL ========== -->
 <div id="thumb-module" class="card hidden">
-    <label>🎨 Image Engine चुनें (सिर्फ़ tested/working)</label>
+    <label>🎨 Image Engine चुनें (सिर्फ़ 2 verified)</label>
     <select id="engineSelect">
         <option value="puter-gpt2" selected>🤖 GPT Image 2 – Puter FREE (Hindi text सबसे बेस्ट, ✅ tested)</option>
-        <option value="puter-gpt1">🤖 GPT Image 1 – Puter FREE</option>
-        <option value="puter-nb2">🍌 Nano Banana 2 (gemini-3.1-flash-image) – Puter FREE</option>
-        <option value="puter-nbpro">🍌 Nano Banana Pro (gemini-3-pro-image) – Puter FREE</option>
-        <option value="puter-nb">🍌 Nano Banana (gemini-2.5-flash-image) – Puter FREE</option>
-        <option value="puter-flux2">⚡ FLUX.2 Pro – Puter FREE</option>
-        <option value="cf-flux">☁️ Cloudflare FLUX (Worker free tier – कोई login/पॉपअप नहीं, सच्चा 16:9)</option>
+        <option value="cf-flux">☁️ Cloudflare FLUX (Worker free tier – कोई login नहीं)</option>
     </select>
-    <p class="hint">💡 पहली बार Puter पर फ्री login पॉपअप आएगा — allow करें। कोई engine फेल हो तो अपने आप दूसरा ट्राई होता है और status में असली वजह दिखती है। 1280×720 डाउनलोड से पहले Crop Position चुनें: faces ऊपर कटें तो "ऊपर से", banner नीचे कटे तो "नीचे से"।</p>
+    <p class="hint">💡 पहली बार Puter पर फ्री login पॉपअप आएगा — allow करें। चुना engine fail हो तो दूसरा अपने आप ट्राई होता है। Image बनने के बाद "16:9 YouTube में बदलें" दबाकर drag/zoom से perfect 1280×720 सेट करें — कुछ भी नहीं कटेगा।</p>
 
     <label>Prompt Paste Box</label>
     <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: UPI Tap & Pay&#10;Text: "UPI क्रांति! नए फीचर!"&#10;Concept: Dynamic, futuristic, hand tapping phone on POS machine...&#10;Prompt: A high-angle, cinematic, photorealistic image of a hand holding a modern smartphone...&#10;Branding: "Aryan News Tek"'></textarea>
@@ -102,29 +99,40 @@
 
     <div id="thumbResult" class="hidden">
         <img id="thumbImg" alt="YouTube Thumbnail">
-        <label>📐 Crop Position (1280×720 डाउनलोड के लिए)</label>
-        <select id="cropPos">
-            <option value="center" selected>🎯 बीच (Auto)</option>
-            <option value="top">⬆️ ऊपर से रखें (faces/सिर बचाने के लिए)</option>
-            <option value="bottom">⬇️ नीचे से रखें (banner/नीचे का टेक्स्ट बचाने के लिए)</option>
-        </select>
         <div class="btn-group">
-            <button class="btn-copy" onclick="downloadImage(true)">📐 1280×720 Full-Frame Download</button>
-            <button class="btn-secondary" onclick="downloadImage(false)">⬇️ Original PNG</button>
+            <button class="btn-copy" onclick="openConverter()">📐 16:9 YouTube में बदलें</button>
+            <button class="btn-secondary" onclick="downloadOriginal()">⬇️ Original PNG</button>
         </div>
+    </div>
+</div>
+
+<!-- ========== 16:9 CONVERTER (सभी processing browser में) ========== -->
+<div id="converter" class="card hidden">
+    <label>🎛️ Conversion Mode</label>
+    <select id="convMode" onchange="convRender()">
+        <option value="crop" selected>✂️ MODE 1: Smart Crop 16:9 (default – drag/zoom से सेट करें)</option>
+        <option value="blur">🖼️ MODE 2: Full Image + Blurred Background (कुछ भी नहीं कटेगा)</option>
+    </select>
+
+    <label>📁 या अपनी Square Image चुनें (optional – gallery से 1536×1536 / 1024×1024)</label>
+    <input type="file" id="convFile" accept="image/*" onchange="loadConvFile(this)">
+
+    <canvas id="convCanvas" width="1280" height="720"></canvas>
+    <div class="conv-label">1280 × 720 — YouTube Thumbnail | ☝️ उंगली से drag करें (ऊपर/नीचे/बाएँ/दाएँ)</div>
+
+    <div class="btn-group">
+        <button class="btn-secondary" onclick="convZoom(-1)">🔍 −</button>
+        <button class="btn-secondary" onclick="convZoom(1)">🔍 +</button>
+        <button class="btn-secondary" onclick="convReset()">↻ Reset</button>
+    </div>
+    <div class="btn-group">
+        <button class="btn-copy" onclick="convDownload()">⬇️ डाउनलोड 1280×720</button>
     </div>
 </div>
 
 <script>
 const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
-const PUTER_MODELS = {
-    "puter-gpt2":  "openai/gpt-image-2",
-    "puter-gpt1":  "openai/gpt-image-1",
-    "puter-nb2":   "google/gemini-3.1-flash-image-preview",
-    "puter-nbpro": "google/gemini-3-pro-image-preview",
-    "puter-nb":    "google/gemini-2.5-flash-image",
-    "puter-flux2": "black-forest-labs/flux-2-pro"
-};
+const PUTER_GPT2 = "openai/gpt-image-2";
 let currentImageUrl = null;
 
 /* ================= TAB SWITCH ================= */
@@ -173,7 +181,7 @@ async function generateScript() {
     }
 }
 
-/* ================= PROMPT BUILDER (मज़बूत safe-zone: faces + टेक्स्ट सब बीच में) ================= */
+/* ================= PROMPT BUILDER (सख़्त safe-zone) ================= */
 const hasDev = s => /[\u0900-\u097F]/.test(s);
 function buildFinalPrompt(raw) {
     const quotes = [];
@@ -192,10 +200,10 @@ function buildFinalPrompt(raw) {
     }
     let p = raw.replace(/\s+/g, " ").trim();
     p += ". TEXT RENDERING RULES: Render every Devanagari (Hindi) string with PERFECT correct spelling and matras, in bold Indian TV news headline style — thick outline, high contrast, integrated into the design like a professional news thumbnail (ChatGPT-level quality).";
-    if (main) p += ` The main Hindi headline must appear EXACTLY as: "${main}" — large, bold, dominant placement.`;
-    if (sub)  p += ` The supporting Hindi line must appear EXACTLY as: "${sub}" — smaller, on a contrasting color banner.`;
-    if (brand) p += ` Small corner branding text EXACTLY: "${brand}".`;
-    p += " STRICT 16:9 SAFE-ZONE RULE: This image will be center-cropped to 16:9 landscape. Therefore EVERY important element — all people's complete faces and heads, bodies, weapons, objects, fuel pumps, price boards, headlines, banners, logos — must be placed INSIDE the central horizontal band between 22% and 78% of the image height. The top 22% and bottom 22% of the canvas must contain ONLY extendable background artwork (sky, flags, gradient, smoke, blur) with absolutely NO faces, NO bodies, NO text, NO important objects.";
+    if (main) p += ` The main Hindi headline must appear EXACTLY as: "${main}" — large, bold, placed in the vertical middle band (38% to 62% of height).`;
+    if (sub)  p += ` The supporting Hindi line must appear EXACTLY as: "${sub}" — on a contrasting color banner placed at 66% to 74% height, NEVER touching the bottom edge.`;
+    if (brand) p += ` Small corner branding text EXACTLY: "${brand}" — inside the safe zone, not at the extreme corner.`;
+    p += " STRICT 16:9 SAFE-ZONE RULE: The final image will be center-cropped to 16:9 landscape keeping only the middle half of the height. Therefore EVERY important element must lie inside the vertical band 25% to 75% of the image height: people's complete heads and faces must start no higher than 26% from the top; bodies, weapons, fuel pumps, price boards, logos all inside 28% to 72%. The top 25% and bottom 25% of the canvas must contain ONLY extendable background artwork (sky, flags, smoke, gradient, blur) with absolutely NO faces, NO bodies, NO text, NO important objects.";
     p += " No distorted or invented Devanagari characters, no extra text, no watermark, no newspaper screenshots. Wide 16:9 YouTube thumbnail composition, photorealistic, cinematic news lighting.";
     return p;
 }
@@ -236,12 +244,10 @@ function ensurePuterAuthSync() {
 /* ================= ENGINE: PUTER ================= */
 async function generateViaPuter(prompt, model) {
     if (!window.puter || !puter.ai || !puter.ai.txt2img) throw new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउज़र जाँचें");
-    const extra = model.startsWith("openai/") ? { size: "1536x1024" }
-                : model.startsWith("google/") ? { aspectRatio: "16:9" } : {};
     const attempts = [
-        () => puter.ai.txt2img(prompt, Object.assign({ model: model }, extra)),
+        () => puter.ai.txt2img(prompt, { model: model, size: "1536x1024" }),
         () => puter.ai.txt2img(prompt, { model: model }),
-        () => puter.ai.txt2img(prompt, false, Object.assign({ model: model }, extra)),
+        () => puter.ai.txt2img(prompt, false, { model: model, size: "1536x1024" }),
         () => puter.ai.txt2img(prompt, false, { model: model })
     ];
     let res = null, lastErr = null;
@@ -269,7 +275,7 @@ async function generateViaCF(prompt) {
     return `data:${d.mimeType || "image/png"};base64,${d.b64}`;
 }
 
-/* ================= GENERATE THUMBNAIL ================= */
+/* ================= GENERATE THUMBNAIL (GPT ↔ CF chain) ================= */
 async function generateThumbnail() {
     const raw = document.getElementById('promptBox').value.trim();
     if (!raw) return alert("कृपया Prompt Paste Box में प्रॉन्प्ट पेस्ट करें!");
@@ -281,28 +287,27 @@ async function generateThumbnail() {
     const success = document.getElementById('successMsg');
     const result = document.getElementById('thumbResult');
     const img = document.getElementById('thumbImg');
+    const converter = document.getElementById('converter');
 
     btn.disabled = true;
     result.classList.add('hidden');
+    converter.classList.add('hidden');
     success.classList.add('hidden');
     statusRow.classList.remove('hidden');
     setStatus("Request तैयार हो रही है...");
 
     let puterAuth = null;
-    if (PUTER_MODELS[engine]) puterAuth = ensurePuterAuthSync();
+    if (engine === "puter-gpt2") puterAuth = ensurePuterAuthSync();
 
     startTimer();
 
-    const puterStep = m => [`${m} (Puter FREE)`, async () => {
+    const puterStep = ["🤖 GPT Image 2 (Puter FREE)", async () => {
         if (!puterAuth) puterAuth = ensurePuterAuthSync();
         await puterAuth;
-        return generateViaPuter(prompt, m);
+        return generateViaPuter(prompt, PUTER_GPT2);
     }];
-    const cfStep = () => ["Cloudflare FLUX (free)", () => generateViaCF(prompt)];
-
-    const steps = [];
-    if (PUTER_MODELS[engine]) { steps.push(puterStep(PUTER_MODELS[engine])); steps.push(cfStep()); }
-    else { steps.push(cfStep()); steps.push(puterStep(PUTER_MODELS["puter-gpt2"])); }
+    const cfStep = ["☁️ Cloudflare FLUX (free)", () => generateViaCF(prompt)];
+    const steps = (engine === "puter-gpt2") ? [puterStep, cfStep] : [cfStep, puterStep];
 
     let finalUrl = null, usedEngine = "";
     const errors = [];
@@ -336,31 +341,15 @@ async function generateThumbnail() {
     }
 }
 
-/* ================= 1280×720 FULL-FRAME (crop position के साथ) ================= */
-function fit1280x720(im, pos) {
-    pos = pos || "center";
-    const c = document.createElement('canvas');
-    c.width = 1280; c.height = 720;
-    const ctx = c.getContext('2d');
-    const s = Math.max(1280 / im.width, 720 / im.height);
-    const dw = im.width * s, dh = im.height * s;
-    const overflow = dh - 720;
-    let oy = overflow / 2;
-    if (pos === "top") oy = 0;
-    else if (pos === "bottom") oy = overflow;
-    ctx.drawImage(im, (1280 - dw) / 2, -oy, dw, dh);
-    return c;
-}
-
-/* ================= DOWNLOAD ================= */
-function downloadImage(forceResize) {
-    if (!currentImageUrl) return alert("पहले थंबनेल जनरेट करें!");
+/* ================= ORIGINAL DOWNLOAD ================= */
+function downloadOriginal() {
+    if (!currentImageUrl) return alert("पहले thumbnail generate करें!");
     const finish = (url, name) => {
         const a = document.createElement('a');
         a.href = url; a.download = name;
         document.body.appendChild(a); a.click(); a.remove();
     };
-    if (!forceResize && (currentImageUrl.startsWith("data:") || currentImageUrl.startsWith("blob:"))) {
+    if (currentImageUrl.startsWith("data:") || currentImageUrl.startsWith("blob:")) {
         finish(currentImageUrl, "thumbnail-original-" + Date.now() + ".png");
         return;
     }
@@ -368,18 +357,12 @@ function downloadImage(forceResize) {
     im.crossOrigin = "anonymous";
     im.onload = () => {
         try {
-            let c;
-            if (forceResize) {
-                const pos = (document.getElementById('cropPos') || {}).value || "center";
-                c = fit1280x720(im, pos);
-            } else {
-                c = document.createElement('canvas');
-                c.width = im.width; c.height = im.height;
-                c.getContext('2d').drawImage(im, 0, 0);
-            }
+            const c = document.createElement('canvas');
+            c.width = im.width; c.height = im.height;
+            c.getContext('2d').drawImage(im, 0, 0);
             c.toBlob(blob => {
                 const u = URL.createObjectURL(blob);
-                finish(u, forceResize ? "youtube-thumbnail-1280x720.png" : "thumbnail-original-" + Date.now() + ".png");
+                finish(u, "thumbnail-original-" + Date.now() + ".png");
                 setTimeout(() => URL.revokeObjectURL(u), 5000);
             }, "image/png");
         } catch (e) { window.open(currentImageUrl, "_blank"); }
@@ -387,6 +370,104 @@ function downloadImage(forceResize) {
     im.onerror = () => window.open(currentImageUrl, "_blank");
     im.src = currentImageUrl;
 }
+
+/* ================= 16:9 CONVERTER (Smart Crop + Drag + Zoom + Blur Mode) ================= */
+let convImg = null, convZoomV = 1, convPanX = 0.5, convPanY = 0.5;
+
+function openConverter(src) {
+    const url = src || currentImageUrl;
+    if (!url) return alert("पहले thumbnail generate करें या अपनी image चुनें!");
+    const im = new Image();
+    im.crossOrigin = "anonymous";
+    im.onload = () => {
+        convImg = im; convZoomV = 1; convPanX = 0.5; convPanY = 0.5;
+        document.getElementById('converter').classList.remove('hidden');
+        convRender();
+        document.getElementById('converter').scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    im.onerror = () => alert("Image लोड नहीं हो सकी!");
+    im.src = url;
+}
+function loadConvFile(inp) {
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    openConverter(URL.createObjectURL(f));
+}
+function convModeV() { return document.getElementById('convMode').value; }
+function convRender() {
+    if (!convImg) return;
+    const c = document.getElementById('convCanvas');
+    const ctx = c.getContext('2d');
+    const W = 1280, H = 720;
+    ctx.clearRect(0, 0, W, H);
+    if (convModeV() === "blur") {
+        /* MODE 2: पूरी image + ब्लर background */
+        let ok = false;
+        try { ctx.filter = "blur(40px) brightness(0.55)"; ok = String(ctx.filter).indexOf("blur") !== -1; } catch (e) { ok = false; }
+        if (ok) {
+            const bs = Math.max(W / convImg.width, H / convImg.height) * 1.15;
+            const bw = convImg.width * bs, bh = convImg.height * bs;
+            ctx.drawImage(convImg, (W - bw) / 2, (H - bh) / 2, bw, bh);
+            ctx.filter = "none";
+        } else { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H); }
+        const s = Math.min(W / convImg.width, H / convImg.height);
+        const dw = convImg.width * s, dh = convImg.height * s;
+        ctx.drawImage(convImg, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    } else {
+        /* MODE 1: smart crop + pan/zoom */
+        const s = Math.max(W / convImg.width, H / convImg.height) * convZoomV;
+        const dw = convImg.width * s, dh = convImg.height * s;
+        const overX = Math.max(0, dw - W), overY = Math.max(0, dh - H);
+        ctx.drawImage(convImg, -overX * convPanX, -overY * convPanY, dw, dh);
+    }
+}
+function convZoom(dir) {
+    convZoomV = Math.min(2.5, Math.max(1, +(convZoomV + dir * 0.1).toFixed(2)));
+    convRender();
+}
+function convReset() { convZoomV = 1; convPanX = 0.5; convPanY = 0.5; convRender(); }
+function convDownload() {
+    if (!convImg) return alert("पहले converter में image लोड करें!");
+    const c = document.getElementById('convCanvas');
+    c.toBlob(blob => {
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = u; a.download = "youtube-thumbnail-1280x720.png";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(u), 5000);
+    }, "image/png");
+}
+/* touch + mouse drag */
+(function () {
+    const c = document.getElementById('convCanvas');
+    let dragging = false, lx = 0, ly = 0;
+    const pos = e => (e.touches && e.touches[0]) ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+    const start = e => {
+        if (convModeV() !== "crop" || !convImg) return;
+        dragging = true; const p = pos(e); lx = p.x; ly = p.y; e.preventDefault();
+    };
+    const move = e => {
+        if (!dragging || !convImg) return;
+        const p = pos(e);
+        const rect = c.getBoundingClientRect();
+        const scaleX = 1280 / rect.width, scaleY = 720 / rect.height;
+        const s = Math.max(1280 / convImg.width, 720 / convImg.height) * convZoomV;
+        const overX = Math.max(0, convImg.width * s - 1280), overY = Math.max(0, convImg.height * s - 720);
+        const dx = (p.x - lx) * scaleX, dy = (p.y - ly) * scaleY;
+        if (overX > 0) convPanX = Math.min(1, Math.max(0, convPanX - dx / overX));
+        if (overY > 0) convPanY = Math.min(1, Math.max(0, convPanY - dy / overY));
+        lx = p.x; ly = p.y;
+        convRender();
+        e.preventDefault();
+    };
+    const end = () => { dragging = false; };
+    c.addEventListener('touchstart', start, { passive: false });
+    c.addEventListener('touchmove', move, { passive: false });
+    c.addEventListener('touchend', end);
+    c.addEventListener('mousedown', start);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+})();
 </script>
 </body>
 </html>
