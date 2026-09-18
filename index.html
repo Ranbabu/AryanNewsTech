@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AI News Studio Pro</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@800;900&display=swap" rel="stylesheet">
 <style>
     :root { --bg-color:#121212; --card-bg:#1e1e1e; --text-main:#ffffff; --accent:#00d26a; --border:#333333; }
     body { font-family: system-ui, -apple-system, sans-serif; background-color:var(--bg-color); color:var(--text-main); margin:0; padding:15px; }
@@ -28,22 +25,13 @@
     .tab-btn.active { background-color:var(--accent); color:#000; border-color:var(--accent); }
     .hidden { display:none !important; }
     .hint { font-size:0.75rem; color:#888; margin-top:-10px; margin-bottom:12px; }
-    /* स्पिनर-टाइमर: बटन के नीचे साफ़ स्पेस के साथ */
     .spin-row { display:flex; align-items:center; justify-content:center; gap:10px; margin:10px 0 15px; }
     .spinner { width:22px; height:22px; border:3px solid #333; border-top-color:var(--accent); border-radius:50%; animation:spin 0.9s linear infinite; flex:none; }
     @keyframes spin { to { transform:rotate(360deg); } }
     #statusText { color:#aaa; font-size:0.85rem; }
     #timerText { font-variant-numeric:tabular-nums; color:var(--accent); font-weight:bold; font-size:0.95rem; }
     .success-msg { text-align:center; color:var(--accent); font-size:0.9rem; margin:0 0 15px; font-weight:bold; }
-    /* इमेज + DOM overlay fallback */
-    #thumbWrap { position:relative; margin-bottom:10px; }
-    #thumbImg { width:100%; border-radius:8px; border:1px solid var(--border); display:block; }
-    #domOverlay { position:absolute; inset:0; pointer-events:none; }
-    #domMain, #domSub, #domBrand { position:absolute; font-family:"Noto Sans Devanagari", system-ui, sans-serif; font-weight:900; line-height:1.15;
-        text-shadow: 0 0 6px #000, 3px 3px 0 #000, -3px 3px 0 #000, 3px -3px 0 #000, -3px -3px 0 #000; }
-    #domMain { top:6%; left:4.5%; width:62%; color:#fff; }
-    #domSub  { top:30%; left:4.5%; width:60%; color:#ffd400; }
-    #domBrand{ bottom:4%; right:3%; color:#fff; }
+    #thumbImg { width:100%; border-radius:8px; border:1px solid var(--border); margin-bottom:10px; display:block; }
 </style>
 </head>
 <body>
@@ -87,9 +75,13 @@
 
 <!-- ========== MODULE 2: THUMBNAIL ========== -->
 <div id="thumb-module" class="card hidden">
-    <label>🎨 Image Engine</label>
-    <input type="text" value="sensenova/sensenova-u1.5-lite (xKiro FREE) + Hindi Text Overlay" disabled>
-    <p class="hint">💡 Free plan: 500K tokens/दिन + limited free images (rolling 24h विंडो)। Failed jobs free रहते हैं। कोट्स "..." में लिखी Hindi लाइनें असली Devanagari फॉन्ट में इमेज पर लिखी जाएँगी — पहली = बड़ा हेडलाइन, दूसरी = पीला सपोर्टिंग टेक्स्ट, और English ब्रांडिंग कोने में।</p>
+    <label>🎨 Image Engine चुनें</label>
+    <select id="engineSelect">
+        <option value="nano2" selected>🍌 Nano Banana 2 (Gemini 3.1 Flash Image) – Google FREE tier</option>
+        <option value="gpt-image">🤖 GPT Image (ChatGPT वाला मॉडल, xKiro) – ~$0.00963/image</option>
+        <option value="sensenova">🆓 sensenova-u1.5-lite (xKiro FREE backup)</option>
+    </select>
+    <p class="hint"> Hindi टेक्स्ट अब प्रॉन्प्ट के अंदर मॉडल खुद लिखेगा (ChatGPT जैसा स्टाइल) — वेबसाइट कोई overlay नहीं करती। कोट्स "..." में लिखी हिंदी लाइनें बिल्कुल सही स्पेलिंग के साथ रेंडर करने का निर्देश प्रॉन्प्ट में जुड़ जाता है। Nano Banana 2 = फ्री (Google AI Studio key Worker secret में डालें)।</p>
 
     <label>Prompt Paste Box</label>
     <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: UPI Tap & Pay&#10;Text: "UPI क्रांति! नए फीचर!"&#10;Concept: Dynamic, futuristic, hand tapping phone on POS machine...&#10;Prompt: A high-angle, cinematic, photorealistic image of a hand holding a modern smartphone...&#10;Branding: "Aryan News Tek"'></textarea>
@@ -104,14 +96,7 @@
     <div id="successMsg" class="success-msg hidden"></div>
 
     <div id="thumbResult" class="hidden">
-        <div id="thumbWrap">
-            <img id="thumbImg" alt="YouTube Thumbnail">
-            <div id="domOverlay" class="hidden">
-                <div id="domMain"></div>
-                <div id="domSub"></div>
-                <div id="domBrand"></div>
-            </div>
-        </div>
+        <img id="thumbImg" alt="YouTube Thumbnail">
         <div class="btn-group">
             <button class="btn-copy" onclick="downloadImage(false)">⬇️ Download PNG</button>
             <button class="btn-secondary" onclick="downloadImage(true)">📐 1280×720 Download</button>
@@ -121,8 +106,7 @@
 
 <script>
 const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
-const IMG_MODEL  = "sensenova/sensenova-u1.5-lite";
-const IMG_SIZE   = "1792x1024";
+const IMG_SIZE_XKIRO = "1792x1024";
 let currentImageUrl = null;
 
 /* ================= TAB SWITCH ================= */
@@ -171,35 +155,33 @@ async function generateScript() {
     }
 }
 
-/* ================= PROMPT PARSER v2 — कोट्स वाली Hindi भी पकड़ता है ================= */
+/* ================= PROMPT BUILDER v3 — Hindi टेक्स्ट प्रॉन्प्ट के अंदर (मॉडल खुद लिखेगा) ================= */
 const hasDev = s => /[\u0900-\u097F]/.test(s);
-function parsePromptBlock(raw) {
+function buildFinalPrompt(raw) {
     const quotes = [];
     const re = /"([^"\n]*)"/g; let m;
     while ((m = re.exec(raw))) if (hasDev(m[1])) quotes.push(m[1].trim());
-    let overlayMain = quotes[0] || "";
-    let overlaySub  = quotes[1] || "";
-    if (!overlayMain) {
-        const mt = raw.match(/Text:\s*([^\n]*[\u0900-\u097F][^\n]*)/i);   // पुराना एक-लाइन फॉर्मेट
-        if (mt) overlayMain = mt[1].trim();
+    let main = quotes[0] || "";
+    let sub  = quotes[1] || "";
+    if (!main) {
+        const mt = raw.match(/Text:\s*([^\n]*[\u0900-\u097F][^\n]*)/i);
+        if (mt) main = mt[1].trim();
     }
     let brand = "";
     const rb = /"([^"\n]*)"/g; let mb;
     while ((mb = rb.exec(raw))) {
         if (!hasDev(mb[1]) && /[A-Za-z0-9]/.test(mb[1]) && mb[1].length < 40) { brand = mb[1].trim(); break; }
     }
-    /* AI को भेजने वाला prompt: Hindi/branding हटाकर, साफ़ स्पेस छुड़वाकर */
-    let p = raw;
-    [...quotes, brand].forEach(s => { if (s) p = p.split('"' + s + '"').join(" "); });
-    p = p.replace(/[^\n]*(Hindi headline text|supporting text|logo\/text in one corner|Branding:)[^\n]*/gi, " ");
-    p = p.replace(/^\s*Text:\s*$/gm, " ");
-    p = p.replace(/[\u0900-\u097F₹]/g, " ");
-    p = p.replace(/\s+/g, " ").trim();
-    p += ". Absolutely NO Devanagari or Hindi characters anywhere in the image; keep the upper-left area clean and uncluttered because a headline will be added later. YouTube thumbnail, wide 16:9 composition, highly detailed, vibrant colors, dramatic professional lighting, sharp focus, no watermark, no logo.";
-    return { prompt: p, overlayMain, overlaySub, brand };
+    let p = raw.replace(/\s+/g, " ").trim();
+    p += ". TEXT RENDERING RULES: Render every Devanagari (Hindi) string with PERFECT correct spelling and matras, in bold Indian TV news headline style — thick outline, high contrast, integrated into the design like a professional news thumbnail (exactly like ChatGPT image quality).";
+    if (main) p += ` The main Hindi headline must appear EXACTLY as: "${main}" — large, bold, dominant placement.`;
+    if (sub)  p += ` The supporting Hindi line must appear EXACTLY as: "${sub}" — smaller, on a contrasting color banner.`;
+    if (brand) p += ` Small corner branding text EXACTLY: "${brand}".`;
+    p += " No distorted or invented Devanagari characters, no extra text, no watermark, no newspaper screenshots. 16:9 YouTube thumbnail composition, photorealistic, cinematic news lighting.";
+    return p;
 }
 
-/* ================= SPINNER + TIMER (सिर्फ़ बटन पर, पूरा होते ही गायब) ================= */
+/* ================= SPINNER + TIMER ================= */
 let timerInterval = null, startTime = 0;
 function fmtClock(ms) {
     const s = Math.floor(ms / 1000);
@@ -221,15 +203,43 @@ function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInt
 function setStatus(msg) { document.getElementById('statusText').textContent = msg; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* ================= IMAGE JOB ================= */
-async function createImageJob(prompt) {
+/* ================= ENGINE 1: GEMINI (Nano Banana 2) — FREE ================= */
+async function generateViaGemini(prompt) {
+    const models = ["gemini-3.1-flash-image", "gemini-3.1-flash-image-preview", "gemini-2.5-flash-image"];
+    let lastErr = null;
+    for (const mdl of models) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                setStatus(`🍌 ${mdl} image बना रहा है...`);
+                const r = await fetch(`${WORKER_URL}/gemini/image?model=${mdl}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt })
+                });
+                const d = await r.json();
+                if (r.ok && d.b64) return `data:${d.mimeType || "image/png"};base64,${d.b64}`;
+                const msg = d.error || `HTTP ${r.status}`;
+                lastErr = new Error(msg);
+                if (/not found|does not exist|unsupported|not supported/i.test(msg)) break;  // अगला मॉडल आज़माओ
+                if (attempt === 0) { setStatus("⚠️ नेटवर्क गड़बड़ी — दोबारा कोशिश..."); await sleep(2500); }
+            } catch (e) {
+                lastErr = e;
+                if (attempt === 0) { await sleep(2500); }
+            }
+        }
+    }
+    throw lastErr || new Error("Gemini से image नहीं मिली");
+}
+
+/* ================= ENGINE 2/3: xKiro async jobs (gpt-image / sensenova) ================= */
+async function createImageJob(prompt, model) {
     let lastErr = null;
     for (let attempt = 0; attempt < 2; attempt++) {
         try {
             const r1 = await fetch(`${WORKER_URL}/v1/images/generations`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ model: IMG_MODEL, prompt: prompt, n: 1, size: IMG_SIZE })
+                body: JSON.stringify({ model: model, prompt: prompt, n: 1, size: IMG_SIZE_XKIRO })
             });
             const job = await r1.json();
             if (!r1.ok || !job.id) {
@@ -269,151 +279,49 @@ async function pollImageJob(id) {
     throw new Error("Image job 8 मिनट में पूरा नहीं हुआ — दोबारा कोशिश करें");
 }
 
-/* ================= HINDI OVERLAY (canvas = download-safe) ================= */
-async function ensureFont() {
-    try { await document.fonts.load('900 100px "Noto Sans Devanagari"'); await document.fonts.ready; } catch (e) {}
-}
-function loadImg(src) {
-    return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
-}
-function wrapText(ctx, text, maxWidth) {
-    const words = text.split(/\s+/);
-    const lines = []; let line = "";
-    for (const w of words) {
-        const test = line ? line + " " + w : w;
-        if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; }
-        else line = test;
-    }
-    if (line) lines.push(line);
-    return lines;
-}
-const fontOf = size => `900 ${size}px "Noto Sans Devanagari", "Noto Sans", system-ui, sans-serif`;
-function drawOverlay(imgEl, main, sub, brand) {
-    const W = imgEl.naturalWidth, H = imgEl.naturalHeight;
-    const c = document.createElement('canvas'); c.width = W; c.height = H;
-    const ctx = c.getContext('2d');
-    ctx.drawImage(imgEl, 0, 0, W, H);
-    const maxW = W * 0.62;
-    let S = Math.round(H * 0.14), mainLines = [], subLines = [];
-    while (S > Math.round(H * 0.05)) {
-        ctx.font = fontOf(S);
-        mainLines = main ? wrapText(ctx, main, maxW) : [];
-        ctx.font = fontOf(Math.max(20, S * 0.55));
-        subLines = sub ? wrapText(ctx, sub, maxW * 0.92) : [];
-        if (mainLines.length * S * 1.22 + subLines.length * S * 0.55 * 1.22 <= H * 0.48) break;
-        S -= 4;
-    }
-    ctx.textBaseline = "top";
-    ctx.lineJoin = "round"; ctx.miterLimit = 2;
-    let y = H * 0.06; const x = W * 0.045;
-    const drawLines = (lines, size, color) => {
-        ctx.font = fontOf(size);
-        for (const ln of lines) {
-            ctx.strokeStyle = "rgba(0,0,0,0.95)";
-            ctx.lineWidth = size * 0.18;
-            ctx.strokeText(ln, x, y);
-            ctx.fillStyle = color;
-            ctx.fillText(ln, x, y);
-            y += size * 1.22;
-        }
-    };
-    drawLines(mainLines, S, "#ffffff");
-    y += S * 0.10;
-    drawLines(subLines, Math.max(20, S * 0.55), "#ffd400");
-    if (brand) {
-        const bs = Math.round(H * 0.045);
-        ctx.font = fontOf(bs);
-        const bw = ctx.measureText(brand).width;
-        const bx = W - bw - W * 0.03, by = H - bs * 1.6;
-        ctx.strokeStyle = "rgba(0,0,0,0.95)"; ctx.lineWidth = bs * 0.2;
-        ctx.strokeText(brand, bx, by);
-        ctx.fillStyle = "#ffffff"; ctx.fillText(brand, bx, by);
-    }
-    return c.toDataURL("image/png");
-}
-async function fetchImageBytes(u) {
-    try { const r = await fetch(u, { mode: "cors" }); if (r.ok) return await r.blob(); } catch (e) {}
-    try {
-        const r2 = await fetch(`${WORKER_URL}/proxy?url=${encodeURIComponent(u)}`);
-        if (r2.ok) return await r2.blob();
-    } catch (e) {}
-    return null;
-}
-/* DOM overlay fallback (जब bytes न मिलें — सिर्फ़ preview) */
-function applyDomOverlay(main, sub, brand) {
-    const wrap = document.getElementById('thumbWrap');
-    const w = wrap.clientWidth || 640;
-    const ov = document.getElementById('domOverlay');
-    document.getElementById('domMain').textContent = main || "";
-    document.getElementById('domSub').textContent = sub || "";
-    document.getElementById('domBrand').textContent = brand || "";
-    document.getElementById('domMain').style.fontSize = (w * 0.085) + "px";
-    document.getElementById('domSub').style.fontSize = (w * 0.047) + "px";
-    document.getElementById('domSub').style.top = (6 + (main ? 12 : 0)) + "%";
-    document.getElementById('domBrand').style.fontSize = (w * 0.035) + "px";
-    ov.classList.remove('hidden');
-}
-
 /* ================= GENERATE THUMBNAIL ================= */
 async function generateThumbnail() {
     const raw = document.getElementById('promptBox').value.trim();
     if (!raw) return alert("कृपया Prompt Paste Box में प्रॉन्प्ट पेस्ट करें!");
-    const { prompt, overlayMain, overlaySub, brand } = parsePromptBlock(raw);
+    const prompt = buildFinalPrompt(raw);
+    const engine = document.getElementById('engineSelect').value;
 
     const btn = document.getElementById('thumbBtn');
     const statusRow = document.getElementById('genStatus');
     const success = document.getElementById('successMsg');
     const result = document.getElementById('thumbResult');
     const img = document.getElementById('thumbImg');
-    const domOv = document.getElementById('domOverlay');
 
     btn.disabled = true;
     result.classList.add('hidden');
     success.classList.add('hidden');
-    domOv.classList.add('hidden');
     statusRow.classList.remove('hidden');
-    setStatus("Job बनाया जा रहा है...");
+    setStatus("Request भेजी जा रही है...");
     startTimer();
 
     try {
-        const job = await createImageJob(prompt);
-        setStatus("✅ Job बन गया — image render हो रही है...");
-        const url = await pollImageJob(job.id);
-        if (!url) throw new Error("Image URL नहीं मिला");
-
-        let finalUrl = url, mode = "none";
-        if (overlayMain || overlaySub || brand) {
-            setStatus("🖌️ Hindi टेक्स्ट सही फॉन्ट में लिखा जा रहा है...");
-            await ensureFont();
-            const blob = await fetchImageBytes(url);
-            if (blob) {
-                try {
-                    const objUrl = URL.createObjectURL(blob);
-                    const im = await loadImg(objUrl);
-                    finalUrl = drawOverlay(im, overlayMain, overlaySub, brand);
-                    URL.revokeObjectURL(objUrl);
-                    mode = "baked";
-                } catch (e) {}
-            }
-            if (mode === "none") mode = "dom";
+        let finalUrl = null;
+        if (engine === "nano2") {
+            finalUrl = await generateViaGemini(prompt);
+        } else {
+            setStatus(engine === "gpt-image" ? "🤖 GPT Image (ChatGPT model) job बनाया जा रहा है..." : "🆓 sensenova job बनाया जा रहा है...");
+            const job = await createImageJob(prompt, engine);
+            finalUrl = await pollImageJob(job.id);
         }
+        if (!finalUrl) throw new Error("Image URL नहीं मिला");
 
         const elapsed = Date.now() - startTime;
         stopTimer();
-        statusRow.classList.add('hidden');      // 🛑 स्पिनर-टाइमर पूरी तरह गायब
-        let msg = `✅ Image तैयार! कुल समय: ${fmtHuman(elapsed)}`;
-        if (mode === "baked") msg += " | Hindi टेक्स्ट सही लिखा गया ✅";
-        if (mode === "dom")   msg += " | ⚠️ Hindi टेक्स्ट सिर्फ़ preview में (Worker में /proxy route डिप्लॉय करें)";
-        success.textContent = msg;
+        statusRow.classList.add('hidden');
+        success.textContent = `✅ Image तैयार! कुल समय: ${fmtHuman(elapsed)} | Engine: ${engine === "nano2" ? "Nano Banana 2 (FREE)" : engine}`;
         success.classList.remove('hidden');
         currentImageUrl = finalUrl;
         img.src = finalUrl;
-        if (mode === "dom") applyDomOverlay(overlayMain, overlaySub, brand);
         result.classList.remove('hidden');
     } catch (error) {
         stopTimer();
         statusRow.classList.add('hidden');
-        alert("⚠️ Thumbnail Error: " + error.message + "\n(लगा समय: " + fmtHuman(Date.now() - startTime) + ")");
+        alert("⚠️ Thumbnail Error: " + error.message + "\n(लगा समय: " + fmtHuman(Date.now() - startTime) + ")\n\nटिप: Nano Banana 2 के लिए Worker में GEMINI_API_KEY secret ज़रूरी है।");
     } finally {
         btn.disabled = false;
     }
