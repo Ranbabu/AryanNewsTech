@@ -87,7 +87,7 @@
     <p class="hint">💡 सुझाव: सबसे पहले 'GPT Image 1' चुनें। पहली बार Generate दबाते ही Puter का लॉगिन विंडो खुलेगा (Google/Guest से साइन इन करें)। यह मॉडल हिंदी टेक्स्ट को सबसे बेहतर ढंग से हैंडल करता है। अगर Puter फेल हो, तो स्वतः Cloudflare पर चला जाएगा।</p>
 
     <label>Prompt Paste Box</label>
-    <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: Indore BJP Rift&#10;Text: "मोहन-कैलाश की तकरार!"&#10;Concept: Split screen of two politicians, red crack in middle.&#10;Prompt: Cinematic news thumbnail, photorealistic...'></textarea>
+    <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: Indore BJP Rift&#10;Text: "BJP में तकरार!"&#10;Concept: Split screen of Mohan Yadav and Kailash Vijayvargiya, red crack in middle.&#10;Prompt: Cinematic news thumbnail, photorealistic...'></textarea>
 
     <button id="thumbBtn" onclick="generateThumbnail()">🎨 Generate Thumbnail</button>
 
@@ -195,9 +195,9 @@ async function generateScript() {
     }
 }
 
-/* ================= PROMPT BUILDER ================= */
+/* ================= PROMPT BUILDER (Optimized for High-Quality News Thumbnails) ================= */
 function buildFinalPrompt(raw) {
-    // Simple extraction logic
+    // Extracting key parts simply
     const lines = raw.split('\n');
     let concept = "", textMain = "", brand = "";
     
@@ -207,14 +207,20 @@ function buildFinalPrompt(raw) {
         if(line.toLowerCase().includes('branding')) brand = line.split(':')[1]?.trim() || '';
     });
 
+    // Basic fallback if parsing fails
     if(!concept && !textMain) concept = raw; 
 
     // Detailed prompt for GPT-Image-1 which understands context well
+    // We explicitly ask for "Bold Yellow/White Hindi Text" and "High Contrast" based on your demo
     let p = `Create a professional YouTube news thumbnail in 16:9 aspect ratio. 
     Visual Concept: ${concept}. 
-    Main Headline Text (Must be spelled correctly in Hindi): "${textMain}". 
-    Style: Bold, high contrast, Indian TV news anchor style, photorealistic, cinematic lighting.
-    Branding: Include small logo/text "${brand}" in corner if provided.
+    Main Headline Text Overlay (Must be spelled correctly in Hindi): "${textMain}". 
+    Style Guidelines: 
+    - Use bold, high-contrast fonts typical of Indian TV news channels (Yellow or White text with black outlines/shadows).
+    - Photorealistic images of people/politicians involved.
+    - Dramatic lighting, sharp focus, intense expression suitable for breaking news.
+    - If it involves conflict/rift, use visual elements like cracks, lightning bolts, or split screens.
+    Branding Corner: Include small logo/text "${brand}" in corner if provided.
     Ensure no distorted characters and perfect alignment.`;
     
     return p;
@@ -244,7 +250,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* ================= PUTER AUTH ================= */
 function ensurePuterAuthSync() {
-    if (!window.puter || !puter.auth) return Promise.reject(new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउज़र जांचें"));
+    if (!window.puter || !puter.auth) return Promise.reject(new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउजर जांचें"));
     let signed = false;
     try { signed = !!puter.auth.isSignedIn(); } catch (e) {}
     if (signed) return Promise.resolve();
