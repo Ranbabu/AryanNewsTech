@@ -14,6 +14,10 @@ function extractB64(out) {
     if (out.b64) return out.b64;
     if (out.result) { const b = extractB64(out.result); if (b) return b; }
     if (out.output) { const b = extractB64(out.output); if (b) return b; }
+    // Handle standard CF AI response structure specifically
+    if (out.data && Array.isArray(out.data) && out.data.length > 0) {
+       return extractB64(out.data[0]);
+    }
   }
   return null;
 }
@@ -40,34 +44,8 @@ export default {
       });
     }
 
-    // 📋 CATALOG ROUTE (optional secrets हों तो)
-    if (url.pathname === "/cf/models") {
-      const tok = env.CF_API_TOKEN, acc = env.CF_ACCOUNT_ID;
-      if (!tok || !acc) {
-        return new Response(JSON.stringify({ error: "CF_API_TOKEN/CF_ACCOUNT_ID secrets सेट नहीं हैं। Dashboard → Workers AI → Models में IDs देखें" }), {
-          status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
-        });
-      }
-      try {
-        const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acc}/ai/models/search?per_page=200`, {
-          headers: { Authorization: `Bearer ${tok}` }
-        });
-        const d = await r.json();
-        const list = (d.result || [])
-          .filter(m => ((m.task && m.task.name) || "") === "Text to Image" || /image|flux|diffusion|lucid|pruna|qwen|grok/i.test(m.name || ""))
-          .map(m => m.name);
-        return new Response(JSON.stringify({ models: list }), {
-          status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
-        });
-      } catch (e) {
-        return new Response(JSON.stringify({ error: "catalog fetch error: " + e.message }), {
-          status: 502, headers: { "Content-Type": "application/json", ...corsHeaders }
-        });
-      }
-    }
-
     // ============================================================
-    // ☁️ WORKERS AI IMAGE — Hindi-text वाले मॉडल सबसे पहले + पूरा prompt
+    // ☁️ WORKERS AI IMAGE — Optimized for Stability
     // POST /cf/image  {prompt}
     // ============================================================
     if (url.pathname === "/cf/image" && request.method === "POST") {
@@ -76,60 +54,68 @@ export default {
           status: 500, headers: { "Content-Type": "application/json", ...corsHeaders }
         });
       }
+      
       let prompt = "";
-      try { prompt = (await request.json()).prompt || ""; } catch (e) {
+      try { 
+        const body = await request.json();
+        prompt = body.prompt || ""; 
+      } catch (e) {
         return new Response(JSON.stringify({ error: "Bad JSON body" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
       }
+      
       if (!prompt) {
         return new Response(JSON.stringify({ error: "prompt खाली है" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
       }
 
-      const cfg = String(env.CF_IMAGE_MODELS || "").split(",").map(s => s.trim()).filter(Boolean);
-      const defaults = [
-        "openai/gpt-image-2.5-flare",
-        "openai/gpt-image-2.5-sunburst",
-        "alibaba/qwen-image-3.0-pro",
-        "xai/grok-imagine-image-quality",
-        "@cf/leonardo/lucid-origin",
-        "pruna/p-image",
-        "black-forest-labs/flux-1-kontext-max",
-        "@cf/stabilityai/stable-diffusion-xl-base-1.0"
+      // Primary Model: Flux Schnell (Fastest & Most Stable Free Option)
+      // Fallback Models if needed (commented out for speed/reliability focus as requested)
+      const modelsToTry = [
+        "@cf/black-forest-labs/flux-1-schnell"
+        // If you want more fallbacks later, uncomment these:
+        // "@cf/stabilityai/stable-diffusion-xl-base-1.0"
       ];
-      const bases = cfg.length ? cfg : defaults;
-
-      const candidates = [];
-      for (const b of bases) {
-        candidates.push(b);
-        if (!b.startsWith("@cf/")) candidates.push("@cf/" + b);
-      }
-
-      /* सिर्फ़ पुराने clip-token diffusion मॉडल्स के लिए छोटा prompt;
-         ग़लती से Hindi-text निर्देश न कटें इसलिए बाकी सब को पूरा prompt */
-      let shortPrompt = prompt;
-      if (shortPrompt.length > 380) shortPrompt = shortPrompt.slice(0, 380).replace(/\s+\S*$/, "");
 
       const errs = [];
-      for (const m of candidates) {
-        const isDiffusion = /diffusion|dreamshaper|lcm/i.test(m);
-        const usePrompt = isDiffusion ? shortPrompt : prompt;
-        const inputs = [{ prompt: usePrompt, width: 1024, height: 576 }, { prompt: usePrompt }];
-        for (const input of inputs) {
-          try {
-            const out = await env.AI.run(m, input);
-            const b64 = extractB64(out);
-            if (b64) {
-              return new Response(JSON.stringify({ b64: b64, mimeType: "image/png", model: m }), {
-                status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
-              });
-            }
-            errs.push(m + ": keys=[" + Object.keys(out || {}).join(",") + "]");
-          } catch (e) {
-            const msg = (e && e.message) ? e.message : String(e);
-            errs.push(m + ": " + msg);
-            if (/5007|no such model/i.test(msg)) break;
+      
+      for (const m of modelsToTry) {
+        try {
+          // Note: Some models require specific input formats. 
+          // Flux usually accepts { prompt: string }
+          const inputs = { prompt: prompt };
+          
+          // Add dimensions if supported by the model wrapper, otherwise keep simple
+          // CF AI often handles resizing internally or ignores extra params gracefully
+          
+          const out = await env.AI.run(m, inputs);
+          
+          const b64 = extractB64(out);
+          if (b64) {
+            return new Response(JSON.stringify({ 
+              b64: b64, 
+              mimeType: "image/png", 
+              model: m 
+            }), {
+              status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+          
+          // Log detailed error if no b64 found
+          errs.push(`${m}: No image data returned. Keys: ${Object.keys(out||{}).join(',')}`);
+          
+        } catch (e) {
+          const msg = (e && e.message) ? e.message : String(e);
+          errs.push(`${m}: ${msg}`);
+          
+          // If it's a "model not found" or quota error, we might break early 
+          // but since we only have one main model now, we just log and exit loop
+          if (/quota|limit/i.test(msg)) {
+             return new Response(JSON.stringify({ error: `Cloudflare Quota Exceeded for ${m}. Try again after 1 hour.` }), {
+               status: 429, headers: { "Content-Type": "application/json", ...corsHeaders }
+             });
           }
         }
       }
+      
       return new Response(JSON.stringify({ error: "Workers AI सभी मॉडल fail: " + errs.join(" | ") }), {
         status: 502, headers: { "Content-Type": "application/json", ...corsHeaders }
       });
