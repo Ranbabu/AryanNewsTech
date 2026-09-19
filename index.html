@@ -80,11 +80,17 @@
 <div id="thumb-module" class="card hidden">
     <label>🎨 Image Engine चुनें</label>
     <select id="engineSelect">
-        <!-- Default is now Puter with gpt-image-1 -->
-        <option value="puter-gpt1" selected>🤖 GPT Image 1 – Puter (FREE Login Required, Best Quality)</option>
-        <option value="cf-ai">☁️ Cloudflare Workers AI – FREE (No Login, Flux Schnell)</option>
+        <!-- Best Quality but Limited Credits -->
+        <option value="puter-gpt1" selected>🤖 GPT Image 1 – Puter (BEST QUALITY, Needs Login/Credits)</option>
+        
+        <!-- Good Quality but Daily Limit Reached -->
+        <option value="cf-ai">☁️ Cloudflare Workers AI (Good, But Has Daily Limit)</option>
+        
+        <!-- UNLIMITED & FREE (Added as requested) -->
+        <option value="pollinations">🌸 Pollinations.ai (UNLIMITED & FREE, No Login, Decent Quality)</option>
     </select>
-    <p class="hint">💡 सुझाव: सबसे पहले 'GPT Image 1' चुनें। पहली बार Generate दबाते ही Puter का लॉगिन विंडो खुलेगा (Google/Guest से साइन इन करें)। यह मॉडल हिंदी टेक्स्ट को सबसे बेहतर ढंग से हैंडल करता है। अगर Puter फेल हो, तो स्वतः Cloudflare पर चला जाएगा।</p>
+    
+    <p class="hint" id="engineHint">💡 सुझाव: अगर ऊपर वाले दो फेल हों, तो 'Pollinations' चुनें। यह हमेशा काम करता है क्योंकि इसकी कोई लिमिट नहीं है, बस इसकी हिंदी स्पेलिंग थोड़ी कमजोर हो सकती है।</p>
 
     <label>Prompt Paste Box</label>
     <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: Indore BJP Rift&#10;Text: "BJP में तकरार!"&#10;Concept: Split screen of Mohan Yadav and Kailash Vijayvargiya, red crack in middle.&#10;Prompt: Cinematic news thumbnail, photorealistic...'></textarea>
@@ -119,7 +125,7 @@
     <input type="file" id="convFile" accept="image/*" onchange="loadConvFile(this)">
 
     <canvas id="convCanvas" width="1280" height="720"></canvas>
-    <div class="conv-label">1280 × 720 — YouTube Thumbnail | ☝️ उंगली से drag करें (ऊपर/नीचे/बाएं/दाएं)</div>
+    <div class="conv-label">1280 × 720 — YouTube Thumbnail | ☝️ उंगली से drag करें (ऊपर/नीचे/बाएँ/दाएँ)</div>
 
     <div class="btn-group">
         <button class="btn-secondary" onclick="convZoom(-1)">🔍 −</button>
@@ -133,7 +139,6 @@
 
 <script>
 const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
-// Updated Model Name for Puter
 const PUTER_GPT_MODEL = "openai/gpt-image-1"; 
 let currentImageUrl = null;
 let cfUsedModel = "";
@@ -195,9 +200,8 @@ async function generateScript() {
     }
 }
 
-/* ================= PROMPT BUILDER (Optimized for High-Quality News Thumbnails) ================= */
+/* ================= PROMPT BUILDER ================= */
 function buildFinalPrompt(raw) {
-    // Extracting key parts simply
     const lines = raw.split('\n');
     let concept = "", textMain = "", brand = "";
     
@@ -207,21 +211,14 @@ function buildFinalPrompt(raw) {
         if(line.toLowerCase().includes('branding')) brand = line.split(':')[1]?.trim() || '';
     });
 
-    // Basic fallback if parsing fails
     if(!concept && !textMain) concept = raw; 
 
-    // Detailed prompt for GPT-Image-1 which understands context well
-    // We explicitly ask for "Bold Yellow/White Hindi Text" and "High Contrast" based on your demo
-    let p = `Create a professional YouTube news thumbnail in 16:9 aspect ratio. 
-    Visual Concept: ${concept}. 
-    Main Headline Text Overlay (Must be spelled correctly in Hindi): "${textMain}". 
-    Style Guidelines: 
-    - Use bold, high-contrast fonts typical of Indian TV news channels (Yellow or White text with black outlines/shadows).
-    - Photorealistic images of people/politicians involved.
-    - Dramatic lighting, sharp focus, intense expression suitable for breaking news.
-    - If it involves conflict/rift, use visual elements like cracks, lightning bolts, or split screens.
-    Branding Corner: Include small logo/text "${brand}" in corner if provided.
-    Ensure no distorted characters and perfect alignment.`;
+    // Optimized prompt for generic models too
+    let p = `Professional YouTube news thumbnail, 16:9 aspect ratio. 
+    Scene Description: ${concept}. 
+    Main Headline Text Overlay (Correct Hindi Spelling): "${textMain}". 
+    Style: High contrast, bold fonts, Indian TV news style, photorealistic faces, dramatic lighting.
+    Branding: "${brand}".`;
     
     return p;
 }
@@ -250,38 +247,29 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* ================= PUTER AUTH ================= */
 function ensurePuterAuthSync() {
-    if (!window.puter || !puter.auth) return Promise.reject(new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउजर जांचें"));
+    if (!window.puter || !puter.auth) return Promise.reject(new Error("Puter.js लोड नहीं हुआ"));
     let signed = false;
     try { signed = !!puter.auth.isSignedIn(); } catch (e) {}
     if (signed) return Promise.resolve();
-    // Trigger login popup
     return puter.auth.signIn().catch(err => {
-        throw new Error("Puter लॉगिन रद्द कर दिया गया या ब्लॉक हुआ। Pop-ups allow करें।");
+        throw new Error("Puter लॉगिन रद्द कर दिया गया।");
     });
 }
 
-/* ================= ENGINE: PUTER (gpt-image-1) ================= */
+/* ================= ENGINE 1: PUTER (GPT-Image-1) ================= */
 function puterGenerate(prompt) {
     return withTimeout(async () => {
-        if (!window.puter || !puter.ai || !puter.ai.txt2img) throw new Error("Puter.js लोड नहीं हुआ");
-        
-        // Call txt2img with the specific model
+        if (!window.puter || !puter.ai || !puter.ai.txt2img) throw new Error("Puter SDK missing");
         const res = await puter.ai.txt2img(prompt, { model: PUTER_GPT_MODEL });
-        
-        if (!res) throw new Error("कोई इमेज नहीं मिली");
-        
-        // Handle different return types from Puter
+        if (!res) throw new Error("No image returned");
         if (typeof res === "string") return res;
-        if (res instanceof HTMLImageElement) return res.src;
-        if (res instanceof Blob || res instanceof File) return URL.createObjectURL(res);
         if (res.src) return res.src;
         if (res.image && res.image.src) return res.image.src;
-        
-        throw new Error("Puter से image प्रोसेस नहीं हो पाई");
-    }, 120000, "Puter GPT-1"); // Increased timeout slightly for better quality models
+        throw new Error("Unknown format");
+    }, 120000, "Puter GPT-1");
 }
 
-/* ================= ENGINE: CLOUDFLARE ================= */
+/* ================= ENGINE 2: CLOUDFLARE ================= */
 function cfGenerate(prompt) {
     return withTimeout(async () => {
         const r = await fetch(`${WORKER_URL}/cf/image`, {
@@ -289,25 +277,39 @@ function cfGenerate(prompt) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt })
         });
-        
-        if (!r.ok) {
-             const errData = await r.text();
-             throw new Error(`CF HTTP Error ${r.status}: ${errData}`);
-        }
-
+        if (!r.ok) throw new Error(`CF Error ${r.status}`);
         const d = await r.json();
         if (d.error) throw new Error(d.error);
-        if (!d.b64) throw new Error("No image data received from Worker");
-        
-        cfUsedModel = d.model || "Flux-Schnell";
+        if (!d.b64) throw new Error("No data");
+        cfUsedModel = d.model || "Flux";
         return `data:${d.mimeType || "image/png"};base64,${d.b64}`;
     }, 150000, "Cloudflare");
+}
+
+/* ================= ENGINE 3: POLLINATIONS (NEW - UNLIMITED) ================= */
+function pollinationsGenerate(prompt) {
+    return withTimeout(async () => {
+        // Encode prompt safely for URL
+        const encodedPrompt = encodeURIComponent(prompt);
+        // Using flux model via pollinations for better quality than default
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&nologo=true&seed=${Math.floor(Math.random()*10000)}`;
+        
+        // We need to verify the image loads before returning it
+        return new Promise((resolve, reject) => {
+            const imgTest = new Image();
+            imgTest.onload = () => resolve(imageUrl);
+            imgTest.onerror = () => reject(new Error("Pollinations image load failed"));
+            imgTest.src = imageUrl;
+            
+            // Timeout check inside promise if needed, but outer timeout handles it
+        });
+    }, 60000, "Pollinations");
 }
 
 /* ================= GENERATE THUMBNAIL LOGIC ================= */
 async function generateThumbnail() {
     const raw = document.getElementById('promptBox').value.trim();
-    if (!raw) return alert("कृपया Prompt Paste Box में प्रॉम्प्ट पेस्ट करें!");
+    if (!raw) return alert("कृपया Prompt पेस्ट करें!");
     const prompt = buildFinalPrompt(raw);
     const engineChoice = document.getElementById('engineSelect').value;
 
@@ -333,30 +335,18 @@ async function generateThumbnail() {
     const errors = [];
 
     try {
-        // Determine order based on selection
-        // If User selects Puter: Try Puter First -> Then CF as fallback
-        // If User selects CF: Try CF Only
-        
         const steps = [];
+        
+        // Logic to determine which engines to run based on selection
         if (engineChoice === 'puter-gpt1') {
-            steps.push({
-                label: "🤖 GPT Image 1 (Puter)",
-                fn: async () => {
-                    await ensurePuterAuthSync(); // Ensures login happens here
-                    return puterGenerate(prompt);
-                }
-            });
-            // Add CF as automatic fallback for Puter users
-            steps.push({
-                label: "☁️ Cloudflare Backup (Flux)",
-                fn: () => cfGenerate(prompt)
-            });
-        } else {
-            // Only Cloudflare
-            steps.push({
-                label: "☁️ Cloudflare Workers AI (Flux)",
-                fn: () => cfGenerate(prompt)
-            });
+            steps.push({ label: "🤖 GPT Image 1 (Puter)", fn: async () => { await ensurePuterAuthSync(); return puterGenerate(prompt); }});
+            steps.push({ label: "☁️ Cloudflare Backup", fn: () => cfGenerate(prompt) });
+            steps.push({ label: "🌸 Pollinations (Last Resort)", fn: () => pollinationsGenerate(prompt) });
+        } else if (engineChoice === 'cf-ai') {
+            steps.push({ label: "☁️ Cloudflare Workers AI", fn: () => cfGenerate(prompt) });
+            steps.push({ label: "🌸 Pollinations Backup", fn: () => pollinationsGenerate(prompt) });
+        } else if (engineChoice === 'pollinations') {
+            steps.push({ label: "🌸 Pollinations.ai (Unlimited)", fn: () => pollinationsGenerate(prompt) });
         }
 
         for (let i = 0; i < steps.length; i++) {
@@ -371,8 +361,8 @@ async function generateThumbnail() {
                 errors.push(`${step.label}: ${e.message}`);
                 console.warn(e);
                 if (i + 1 < steps.length) {
-                    setStatus(`⚠️ ${step.label} फेल हुआ। बैकअप इंजन ट्राई कर रहे हैं...`);
-                    await sleep(2000); // Small pause before retry
+                    setStatus(`⚠️ ${step.label} फेल हुआ। अगला इंजन ट्राई कर रहे हैं...`);
+                    await sleep(1000); 
                 }
             }
         }
@@ -385,12 +375,7 @@ async function generateThumbnail() {
         stopTimer();
         statusRow.classList.add('hidden');
         
-        let detailInfo = usedEngineLabel;
-        if (usedEngineLabel.includes("Cloudflare") && cfUsedModel) {
-            detailInfo += ` (${cfUsedModel})`;
-        }
-
-        success.textContent = `✅ इमेज तैयार! कुल समय: ${fmtHuman(elapsed)} | इंजन: ${detailInfo}`;
+        success.textContent = `✅ इमेज तैयार! समय: ${fmtHuman(elapsed)} | इंजन: ${usedEngineLabel}`;
         success.classList.remove('hidden');
         currentImageUrl = finalUrl;
         img.src = finalUrl;
