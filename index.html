@@ -63,7 +63,7 @@
     <input type="text" id="customModel" placeholder="e.g. google/gemini-2.5-flash:free">
 
     <label>Topic / Master Prompt</label>
-    <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज़ टेक। आज की टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज़ एंकर के पढ़ने के अंदाज़ में लिखें।</textarea>
+    <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज़ टेक। आज की टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज़ एंकर के पढ़ने के अंदाज में लिखें।</textarea>
 
     <button id="generateBtn" onclick="generateScript()">Generate Script</button>
     <div id="scriptLoader" style="display:none; text-align:center; color:var(--accent); font-size:0.9rem; margin:-10px 0 15px;">Generating... Please wait.</div>
@@ -80,13 +80,14 @@
 <div id="thumb-module" class="card hidden">
     <label>🎨 Image Engine चुनें</label>
     <select id="engineSelect">
-        <option value="cf-ai" selected>☁️ Cloudflare Workers AI – FREE (GPT-2.5 Flare/Sunburst Hindi text सहित, Qwen3, Grok… कोई login नहीं, ✅ recommended)</option>
-        <option value="puter-gpt2">🤖 GPT Image 2 – Puter (login ज़रूरी; सिर्फ़ तभी जब Puter में balance हो)</option>
+        <!-- Default is now Puter with gpt-image-1 -->
+        <option value="puter-gpt1" selected>🤖 GPT Image 1 – Puter (FREE Login Required, Best Quality)</option>
+        <option value="cf-ai">☁️ Cloudflare Workers AI – FREE (No Login, Flux Schnell)</option>
     </select>
-    <p class="hint">💡 Cloudflare = आपके Worker में आपकी सारी free IDs; सबसे पहले gpt-image-2.5-flare/sunburst चलते हैं जो Hindi टेक्स्ट लिखते हैं। Success message में अब CF का exact मॉडल नाम भी दिखेगा। Fail हो तो दूसरा engine अपने आप। हर स्टेप पर timeout — अनंत spinner नहीं। Image के बाद "16:9 YouTube में बदलें" से drag/zoom करके 1280×720।</p>
+    <p class="hint">💡 सुझाव: सबसे पहले 'GPT Image 1' चुनें। पहली बार Generate दबाते ही Puter का लॉगिन विंडो खुलेगा (Google/Guest से साइन इन करें)। यह मॉडल हिंदी टेक्स्ट को सबसे बेहतर ढंग से हैंडल करता है। अगर Puter फेल हो, तो स्वतः Cloudflare पर चला जाएगा।</p>
 
     <label>Prompt Paste Box</label>
-    <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: UPI Tap & Pay&#10;Text: "UPI क्रांति! नए फीचर!"&#10;Concept: Dynamic, futuristic, hand tapping phone on POS machine...&#10;Prompt: A high-angle, cinematic, photorealistic image of a hand holding a modern smartphone...&#10;Branding: "Aryan News Tek"'></textarea>
+    <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: Indore BJP Rift&#10;Text: "मोहन-कैलाश की तकरार!"&#10;Concept: Split screen of two politicians, red crack in middle.&#10;Prompt: Cinematic news thumbnail, photorealistic...'></textarea>
 
     <button id="thumbBtn" onclick="generateThumbnail()">🎨 Generate Thumbnail</button>
 
@@ -118,7 +119,7 @@
     <input type="file" id="convFile" accept="image/*" onchange="loadConvFile(this)">
 
     <canvas id="convCanvas" width="1280" height="720"></canvas>
-    <div class="conv-label">1280 × 720 — YouTube Thumbnail | ☝️ उंगली से drag करें (ऊपर/नीचे/बाएँ/दाएँ)</div>
+    <div class="conv-label">1280 × 720 — YouTube Thumbnail | ☝️ उंगली से drag करें (ऊपर/नीचे/बाएं/दाएं)</div>
 
     <div class="btn-group">
         <button class="btn-secondary" onclick="convZoom(-1)">🔍 −</button>
@@ -132,7 +133,8 @@
 
 <script>
 const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
-const PUTER_GPT2 = "openai/gpt-image-2";
+// Updated Model Name for Puter
+const PUTER_GPT_MODEL = "openai/gpt-image-1"; 
 let currentImageUrl = null;
 let cfUsedModel = "";
 
@@ -169,7 +171,7 @@ async function generateScript() {
     let customModelInput = document.getElementById('customModel').value.trim();
     let finalModel = customModelInput ? customModelInput : document.getElementById('modelSelect').value;
     const basePrompt = document.getElementById('promptInput').value;
-    const hiddenInstructions = "\n\nमहत्वपूर्ण निर्देश: पूरी स्क्रिप्ट बिल्कुल क्लीन प्लेन टेक्स्ट (Plain Text) में होनी चाहिए। किसी भी तरह के स्टार (**), बुलेट पॉइंट, डॉट या हैश (#) का इस्तेमाल बिल्कुल न करें। इसे सीधा एक न्यूज़ एंकर के पढ़ने के लिए साफ़ पैराग्राफ फॉर्मेट में दें।";
+    const hiddenInstructions = "\n\nमहत्वपूर्ण निर्देश: पूरी स्क्रिप्ट बिल्कुल क्लीन प्लेन टेक्स्ट (Plain Text) में होनी चाहिए। किसी भी तरह के स्टार (**), बुलेट पॉइंट, डॉट या हैश (#) का इस्तेमाल बिल्कुल न करें। इसे सीधा एक न्यूज़ एंकर के पढ़ने के लिए साफ पैराग्राफ फॉर्मेट में दें।";
     const finalPrompt = basePrompt + hiddenInstructions;
     const btn = document.getElementById('generateBtn');
     const loader = document.getElementById('scriptLoader');
@@ -193,30 +195,28 @@ async function generateScript() {
     }
 }
 
-/* ================= PROMPT BUILDER (सख़्त safe-zone) ================= */
-const hasDev = s => /[\u0900-\u097F]/.test(s);
+/* ================= PROMPT BUILDER ================= */
 function buildFinalPrompt(raw) {
-    const quotes = [];
-    const re = /"([^"\n]*)"/g; let m;
-    while ((m = re.exec(raw))) if (hasDev(m[1])) quotes.push(m[1].trim());
-    let main = quotes[0] || "";
-    let sub  = quotes[1] || "";
-    if (!main) {
-        const mt = raw.match(/Text:\s*([^\n]*[\u0900-\u097F][^\n]*)/i);
-        if (mt) main = mt[1].trim();
-    }
-    let brand = "";
-    const rb = /"([^"\n]*)"/g; let mb;
-    while ((mb = rb.exec(raw))) {
-        if (!hasDev(mb[1]) && /[A-Za-z0-9]/.test(mb[1]) && mb[1].length < 40) { brand = mb[1].trim(); break; }
-    }
-    let p = raw.replace(/\s+/g, " ").trim();
-    p += ". TEXT RENDERING RULES: Render every Devanagari (Hindi) string with PERFECT correct spelling and matras, in bold Indian TV news headline style — thick outline, high contrast, integrated into the design like a professional news thumbnail (ChatGPT-level quality).";
-    if (main) p += ` The main Hindi headline must appear EXACTLY as: "${main}" — large, bold, placed in the vertical middle band (38% to 62% of height).`;
-    if (sub)  p += ` The supporting Hindi line must appear EXACTLY as: "${sub}" — on a contrasting color banner placed at 66% to 74% height, NEVER touching the bottom edge.`;
-    if (brand) p += ` Small corner branding text EXACTLY: "${brand}" — inside the safe zone, not at the extreme corner.`;
-    p += " STRICT 16:9 SAFE-ZONE RULE: The final image will be center-cropped to 16:9 landscape keeping only the middle half of the height. Therefore EVERY important element must lie inside the vertical band 25% to 75% of the image height: people's complete heads and faces must start no higher than 26% from the top; bodies, weapons, fuel pumps, price boards, logos all inside 28% to 72%. The top 25% and bottom 25% of the canvas must contain ONLY extendable background artwork (sky, flags, smoke, gradient, blur) with absolutely NO faces, NO bodies, NO text, NO important objects.";
-    p += " No distorted or invented Devanagari characters, no extra text, no watermark, no newspaper screenshots. Wide 16:9 YouTube thumbnail composition, photorealistic, cinematic news lighting.";
+    // Simple extraction logic
+    const lines = raw.split('\n');
+    let concept = "", textMain = "", brand = "";
+    
+    lines.forEach(line => {
+        if(line.toLowerCase().includes('concept')) concept = line.split(':')[1]?.trim() || '';
+        if(line.toLowerCase().includes('text:')) textMain = line.split(':')[1]?.trim() || '';
+        if(line.toLowerCase().includes('branding')) brand = line.split(':')[1]?.trim() || '';
+    });
+
+    if(!concept && !textMain) concept = raw; 
+
+    // Detailed prompt for GPT-Image-1 which understands context well
+    let p = `Create a professional YouTube news thumbnail in 16:9 aspect ratio. 
+    Visual Concept: ${concept}. 
+    Main Headline Text (Must be spelled correctly in Hindi): "${textMain}". 
+    Style: Bold, high contrast, Indian TV news anchor style, photorealistic, cinematic lighting.
+    Branding: Include small logo/text "${brand}" in corner if provided.
+    Ensure no distorted characters and perfect alignment.`;
+    
     return p;
 }
 
@@ -242,43 +242,40 @@ function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInt
 function setStatus(msg) { document.getElementById('statusText').textContent = msg; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* ================= PUTER AUTH (45s timeout) ================= */
+/* ================= PUTER AUTH ================= */
 function ensurePuterAuthSync() {
-    if (!window.puter || !puter.auth) return Promise.reject(new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउज़र जाँचें"));
+    if (!window.puter || !puter.auth) return Promise.reject(new Error("Puter.js लोड नहीं हुआ — नेटवर्क/ब्राउज़र जांचें"));
     let signed = false;
     try { signed = !!puter.auth.isSignedIn(); } catch (e) {}
     if (signed) return Promise.resolve();
-    return withTimeout(() => puter.auth.signIn(), 45000, "Puter login popup")
-        .then(() => {})
-        .catch(e => { throw new Error("Puter login अधूरा/ब्लॉक/timeout — pop-ups allow करें या Cloudflare engine चुनें"); });
+    // Trigger login popup
+    return puter.auth.signIn().catch(err => {
+        throw new Error("Puter लॉगिन रद्द कर दिया गया या ब्लॉक हुआ। Pop-ups allow करें।");
+    });
 }
 
-/* ================= ENGINE: PUTER (90s timeout) ================= */
-function puterGenerate(prompt, model) {
+/* ================= ENGINE: PUTER (gpt-image-1) ================= */
+function puterGenerate(prompt) {
     return withTimeout(async () => {
         if (!window.puter || !puter.ai || !puter.ai.txt2img) throw new Error("Puter.js लोड नहीं हुआ");
-        const attempts = [
-            () => puter.ai.txt2img(prompt, { model: model, size: "1536x1024" }),
-            () => puter.ai.txt2img(prompt, { model: model }),
-            () => puter.ai.txt2img(prompt, false, { model: model })
-        ];
-        let lastErr = null;
-        for (const fn of attempts) {
-            try {
-                const res = await fn();
-                if (!res) continue;
-                if (typeof res === "string") return res;
-                if (res instanceof HTMLImageElement) return res.src;
-                if (res instanceof Blob || res instanceof File) return URL.createObjectURL(res);
-                if (res.src) return res.src;
-                if (res.image && res.image.src) return res.image.src;
-            } catch (e) { lastErr = e; }
-        }
-        throw lastErr || new Error("Puter से image नहीं मिली (balance/क्रेडिट जाँचें)");
-    }, 90000, "Puter");
+        
+        // Call txt2img with the specific model
+        const res = await puter.ai.txt2img(prompt, { model: PUTER_GPT_MODEL });
+        
+        if (!res) throw new Error("कोई इमेज नहीं मिली");
+        
+        // Handle different return types from Puter
+        if (typeof res === "string") return res;
+        if (res instanceof HTMLImageElement) return res.src;
+        if (res instanceof Blob || res instanceof File) return URL.createObjectURL(res);
+        if (res.src) return res.src;
+        if (res.image && res.image.src) return res.image.src;
+        
+        throw new Error("Puter से image प्रोसेस नहीं हो पाई");
+    }, 120000, "Puter GPT-1"); // Increased timeout slightly for better quality models
 }
 
-/* ================= ENGINE: CLOUDFLARE (150s timeout, मॉडल नाम भी लौटाता है) ================= */
+/* ================= ENGINE: CLOUDFLARE ================= */
 function cfGenerate(prompt) {
     return withTimeout(async () => {
         const r = await fetch(`${WORKER_URL}/cf/image`, {
@@ -286,19 +283,27 @@ function cfGenerate(prompt) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt })
         });
-        const d = await r.json().catch(() => ({}));
-        if (!r.ok || !d.b64) throw new Error(d.error || `CF error (HTTP ${r.status})`);
-        cfUsedModel = d.model || "";
+        
+        if (!r.ok) {
+             const errData = await r.text();
+             throw new Error(`CF HTTP Error ${r.status}: ${errData}`);
+        }
+
+        const d = await r.json();
+        if (d.error) throw new Error(d.error);
+        if (!d.b64) throw new Error("No image data received from Worker");
+        
+        cfUsedModel = d.model || "Flux-Schnell";
         return `data:${d.mimeType || "image/png"};base64,${d.b64}`;
     }, 150000, "Cloudflare");
 }
 
-/* ================= GENERATE THUMBNAIL ================= */
+/* ================= GENERATE THUMBNAIL LOGIC ================= */
 async function generateThumbnail() {
     const raw = document.getElementById('promptBox').value.trim();
-    if (!raw) return alert("कृपया Prompt Paste Box में प्रॉन्प्ट पेस्ट करें!");
+    if (!raw) return alert("कृपया Prompt Paste Box में प्रॉम्प्ट पेस्ट करें!");
     const prompt = buildFinalPrompt(raw);
-    const engine = document.getElementById('engineSelect').value;
+    const engineChoice = document.getElementById('engineSelect').value;
 
     const btn = document.getElementById('thumbBtn');
     const statusRow = document.getElementById('genStatus');
@@ -312,52 +317,83 @@ async function generateThumbnail() {
     converter.classList.add('hidden');
     success.classList.add('hidden');
     statusRow.classList.remove('hidden');
-    setStatus("Request तैयार हो रही है...");
+    setStatus("प्रारंभ हो रहा है...");
     cfUsedModel = "";
-
-    let puterAuth = null;
-    if (engine === "puter-gpt2") puterAuth = ensurePuterAuthSync();
 
     startTimer();
 
-    const puterStep = ["🤖 GPT Image 2 (Puter)", async () => {
-        if (!puterAuth) puterAuth = ensurePuterAuthSync();
-        await puterAuth;
-        return puterGenerate(prompt, PUTER_GPT2);
-    }];
-    const cfStep = ["☁️ Cloudflare Workers AI (free)", () => cfGenerate(prompt)];
-
-    const steps = (engine === "cf-ai") ? [cfStep, puterStep] : [puterStep, cfStep];
-
-    let finalUrl = null, usedEngine = "";
+    let finalUrl = null;
+    let usedEngineLabel = "";
     const errors = [];
+
     try {
+        // Determine order based on selection
+        // If User selects Puter: Try Puter First -> Then CF as fallback
+        // If User selects CF: Try CF Only
+        
+        const steps = [];
+        if (engineChoice === 'puter-gpt1') {
+            steps.push({
+                label: "🤖 GPT Image 1 (Puter)",
+                fn: async () => {
+                    await ensurePuterAuthSync(); // Ensures login happens here
+                    return puterGenerate(prompt);
+                }
+            });
+            // Add CF as automatic fallback for Puter users
+            steps.push({
+                label: "☁️ Cloudflare Backup (Flux)",
+                fn: () => cfGenerate(prompt)
+            });
+        } else {
+            // Only Cloudflare
+            steps.push({
+                label: "☁️ Cloudflare Workers AI (Flux)",
+                fn: () => cfGenerate(prompt)
+            });
+        }
+
         for (let i = 0; i < steps.length; i++) {
-            const [label, fn] = steps[i];
-            setStatus(`🎨 ${label} से image बना रहे हैं... (${i + 1}/${steps.length})`);
-            try { finalUrl = await fn(); usedEngine = label; break; }
-            catch (e) {
-                errors.push(`${label}: ${e.message}`);
-                setStatus(`⚠️ ${label} fail: ${e.message}`);
-                if (i + 1 < steps.length) { await sleep(3000); setStatus(`↻ ${steps[i + 1][0]} ट्राई कर रहे हैं...`); }
+            const step = steps[i];
+            setStatus(`🎨 ${step.label} से इमेज बना रहे हैं... (${i+1}/${steps.length})`);
+            
+            try {
+                finalUrl = await step.fn();
+                usedEngineLabel = step.label;
+                break; // Success! Stop trying further engines.
+            } catch (e) {
+                errors.push(`${step.label}: ${e.message}`);
+                console.warn(e);
+                if (i + 1 < steps.length) {
+                    setStatus(`⚠️ ${step.label} फेल हुआ। बैकअप इंजन ट्राई कर रहे हैं...`);
+                    await sleep(2000); // Small pause before retry
+                }
             }
         }
-        if (!finalUrl) throw new Error("सभी engines fail हो गए:\n" + errors.join("\n"));
+
+        if (!finalUrl) {
+            throw new Error("सभी इंजन फेल हो गए:\n" + errors.join("\n"));
+        }
 
         const elapsed = Date.now() - startTime;
         stopTimer();
         statusRow.classList.add('hidden');
-        let engineLabel = usedEngine;
-        if (usedEngine.indexOf("Cloudflare") !== -1 && cfUsedModel) engineLabel += " → " + cfUsedModel;
-        success.textContent = `✅ Image तैयार! कुल समय: ${fmtHuman(elapsed)} | Engine: ${engineLabel}`;
+        
+        let detailInfo = usedEngineLabel;
+        if (usedEngineLabel.includes("Cloudflare") && cfUsedModel) {
+            detailInfo += ` (${cfUsedModel})`;
+        }
+
+        success.textContent = `✅ इमेज तैयार! कुल समय: ${fmtHuman(elapsed)} | इंजन: ${detailInfo}`;
         success.classList.remove('hidden');
         currentImageUrl = finalUrl;
         img.src = finalUrl;
         result.classList.remove('hidden');
+        
     } catch (error) {
         stopTimer();
         statusRow.classList.add('hidden');
-        alert("⚠️ Thumbnail Error: " + error.message + "\n(लगा समय: " + fmtHuman(Date.now() - startTime) + ")");
+        alert("⚠️ थंबनेल एरर: " + error.message + "\n(समय: " + fmtHuman(Date.now() - startTime) + ")");
     } finally {
         btn.disabled = false;
     }
@@ -365,7 +401,7 @@ async function generateThumbnail() {
 
 /* ================= ORIGINAL DOWNLOAD ================= */
 function downloadOriginal() {
-    if (!currentImageUrl) return alert("पहले thumbnail generate करें!");
+    if (!currentImageUrl) return alert("पहले थंबनेल जनरेट करें!");
     const finish = (url, name) => {
         const a = document.createElement('a');
         a.href = url; a.download = name;
@@ -398,7 +434,7 @@ let convImg = null, convZoomV = 1, convPanX = 0.5, convPanY = 0.5;
 
 function openConverter(src) {
     const url = src || currentImageUrl;
-    if (!url) return alert("पहले thumbnail generate करें या अपनी image चुनें!");
+    if (!url) return alert("पहले थंबनेल जनरेट करें या अपनी इमेज चुनें!");
     const im = new Image();
     im.crossOrigin = "anonymous";
     im.onload = () => {
@@ -407,7 +443,7 @@ function openConverter(src) {
         convRender();
         document.getElementById('converter').scrollIntoView({ behavior: "smooth", block: "start" });
     };
-    im.onerror = () => alert("Image लोड नहीं हो सकी!");
+    im.onerror = () => alert("इमेज लोड नहीं हो सकी!");
     im.src = url;
 }
 function loadConvFile(inp) {
@@ -447,7 +483,7 @@ function convZoom(dir) {
 }
 function convReset() { convZoomV = 1; convPanX = 0.5; convPanY = 0.5; convRender(); }
 function convDownload() {
-    if (!convImg) return alert("पहले converter में image लोड करें!");
+    if (!convImg) return alert("पहले कन्वर्टर में इमेज लोड करें!");
     const c = document.getElementById('convCanvas');
     c.toBlob(blob => {
         const u = URL.createObjectURL(blob);
