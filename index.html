@@ -35,6 +35,10 @@
     #thumbImg { width:100%; border-radius:8px; border:1px solid var(--border); margin-bottom:10px; display:block; }
     #convCanvas { width:100%; display:block; touch-action:none; border-radius:8px; border:1px solid var(--border); background:#000; }
     .conv-label { text-align:center; color:#aaa; font-size:0.8rem; margin:6px 0 10px; }
+    
+    /* New Styles for API Config */
+    .config-section { background-color: #2a2a2a; border: 1px dashed #555; padding: 10px; margin-bottom: 15px; border-radius: 8px; }
+    .config-title { font-size: 0.85rem; color: #ffaa00; font-weight: bold; margin-bottom: 5px; display: block; }
 </style>
 </head>
 <body>
@@ -52,21 +56,33 @@
 
 <!-- ========== MODULE 1: SCRIPT ========== -->
 <div id="script-module" class="card">
-    <label>AI Model (Select from xKiro List)</label>
-    <!-- UPDATED DROPDOWN WITH REQUESTED MODELS -->
+    
+    <!-- NEW: EXTERNAL API CONFIG SECTION -->
+    <div class="config-section">
+        <span class="config-title">⚙️ External API Settings (Dahl / Others)</span>
+        <label>Dahl API Key (Required for MiniMax & DeepSeek below)</label>
+        <input type="password" id="dahlApiKey" placeholder="Paste your dahl_... key here" onchange="saveApiKeys()">
+        <p class="hint" style="margin-top:5px;">💾 Key सिर्फ आपके ब्राउज़र में सेव होगी, सुरक्षित रहें।</p>
+    </div>
+
+    <label>AI Model Select करें</label>
     <select id="modelSelect">
-        <option value="qwen/qwen3.5-plus" selected>Qwen 3.5 Plus</option>
-        <option value="qwen/qwen3.5-397b-a17b-instruct">Qwen 3.5 397B Instruct</option>
-        <option value="qwen/qwen3.7-plus">Qwen 3.7 Plus</option>
-        <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
-        <option value="minimax/minimax-m3">MiniMax M3</option>
+        <optgroup label="☁️ xKiro / OpenRouter Free Models">
+            <option value="qwen/qwen3.8-omni-flash:free">Qwen 3.8 Omni Flash (Free)</option>
+            <option value="qwen/qwen3.8-max:free">Qwen 3.8 Max (Free)</option>
+            <option value="qwen/qwen3.7-max:free">Qwen 3.7 Max (Free)</option>
+            <option value="qwen/qwen3.7-plus:free">Qwen 3.7 Plus (Free)</option>
+            <option value="qwen/qwen3.7-flash:free">Qwen 3.7 Flash (Free)</option>
+        </optgroup>
+        
+        <optgroup label="🔑 Dahl Global API (Key Needed)">
+            <option value="dahl::MiniMaxAI/MiniMax-M2.7">MiniMax M2.7 (via Dahl)</option>
+            <option value="dahl::deepseek-ai/DeepSeek-V4-Flash-0731">DeepSeek V4 Flash (via Dahl)</option>
+        </optgroup>
     </select>
 
-    <label>OR Enter Custom Model ID (Optional)</label>
-    <input type="text" id="customModel" placeholder="e.g. qwen/qwen3.5-plus">
-
     <label>Topic / Master Prompt</label>
-    <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज़ टेक। आज कী टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज़ एंकर के पढ़ने के अंदाज़ में लिखें।</textarea>
+    <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज टेक। आज की टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज एंकर के पढ़ने के अंदाज में लिखें।</textarea>
 
     <button id="generateBtn" onclick="generateScript()">Generate Script</button>
     <div id="scriptLoader" style="display:none; text-align:center; color:var(--accent); font-size:0.9rem; margin:-10px 0 15px;">Generating... Please wait.</div>
@@ -83,17 +99,12 @@
 <div id="thumb-module" class="card hidden">
     <label>🎨 Image Engine चुनें</label>
     <select id="engineSelect">
-        <!-- Best Quality but Limited Credits -->
         <option value="puter-gpt1" selected>🤖 GPT Image 1 – Puter (BEST QUALITY, Needs Login/Credits)</option>
-        
-        <!-- Good Quality but Daily Limit Reached -->
         <option value="cf-ai">☁️ Cloudflare Workers AI (Good, But Has Daily Limit)</option>
-        
-        <!-- UNLIMITED & FREE (Added as requested) -->
-        <option value="pollinations">🌸 Pollinations.ai (UNLIMITED & FREE, No Login, Decent Quality)</option>
+        <option value="pollinations">🌸 Pollinations.ai (UNLIMITED & FREE, No Login)</option>
     </select>
     
-    <p class="hint" id="engineHint">💡 सुझाव: अगर ऊपर वाले दो फेल हों, तो 'Pollinations' चुनें। यह हमेशा काम करता है क्योंकि इसकी कोई लिमिट नहीं है, बस इसकी हिंदी स्पेलिंग थोड़ी कमजोर हो सकती है।</p>
+    <p class="hint" id="engineHint">💡 सुझाव: अगर ऊपर वाले दो फेल हों, तो 'Pollinations' चुनें। यह हमेशा काम करता है क्योंकि इसकी कोई लिमिट नहीं है।</p>
 
     <label>Prompt Paste Box</label>
     <textarea id="promptBox" style="min-height:170px;" placeholder='Keyword: Indore BJP Rift&#10;Text: "BJP में तकरार!"&#10;Concept: Split screen of Mohan Yadav and Kailash Vijayvargiya, red crack in middle.&#10;Prompt: Cinematic news thumbnail, photorealistic...'></textarea>
@@ -121,14 +132,14 @@
     <label>🎛️ Conversion Mode</label>
     <select id="convMode" onchange="convRender()">
         <option value="crop" selected>✂️ MODE 1: Smart Crop 16:9 (default – drag/zoom से सेट करें)</option>
-        <option value="blur">🖼️ MODE 2: Full Image + Blurred Background (कुछ भी नहीं कटेगा)</option>
+        <option value="blur">🖼️ MODE 2: Full Image + Blurred Background</option>
     </select>
 
-    <label>📁 या अपनी Square Image चुनें (optional – gallery से 1536×1536 / 1024×1024)</label>
+    <label>📁 या अपनी Square Image चुनें (optional)</label>
     <input type="file" id="convFile" accept="image/*" onchange="loadConvFile(this)">
 
     <canvas id="convCanvas" width="1280" height="720"></canvas>
-    <div class="conv-label">1280 × 720 — YouTube Thumbnail | ☝️ उंगली से drag करें (ऊपर/नीचे/बाएं/दाएं)</div>
+    <div class="conv-label">1280 × 720 — YouTube Thumbnail | ☝️ उंगली से drag करें</div>
 
     <div class="btn-group">
         <button class="btn-secondary" onclick="convZoom(-1)">🔍 −</button>
@@ -145,6 +156,17 @@ const WORKER_URL = "https://aryannewstech.babu902654.workers.dev";
 const PUTER_GPT_MODEL = "openai/gpt-image-1"; 
 let currentImageUrl = null;
 let cfUsedModel = "";
+
+// Load saved keys on startup
+window.addEventListener('DOMContentLoaded', () => {
+    const savedKey = localStorage.getItem('dahl_api_key');
+    if(savedKey) document.getElementById('dahlApiKey').value = savedKey;
+});
+
+function saveApiKeys() {
+    const key = document.getElementById('dahlApiKey').value.trim();
+    if(key) localStorage.setItem('dahl_api_key', key);
+}
 
 /* ================= TIMEOUT HELPER ================= */
 function withTimeout(factory, ms, label) {
@@ -167,7 +189,7 @@ function switchTab(tab) {
     document.getElementById('tab-' + tab).classList.add('active');
 }
 
-/* ================= SCRIPT MODULE ================= */
+/* ================= SCRIPT MODULE LOGIC ================= */
 function copyScript() {
     const script = document.getElementById('scriptOutput');
     if (script.value.trim() === "") return alert("कॉपी करने के लिए कोई स्क्रिप्ट नहीं है!");
@@ -175,31 +197,70 @@ function copyScript() {
     document.execCommand("copy");
     alert("✅ स्क्रिप्ट कॉपी हो गई!");
 }
+
 async function generateScript() {
-    let customModelInput = document.getElementById('customModel').value.trim();
-    let finalModel = customModelInput ? customModelInput : document.getElementById('modelSelect').value;
+    let finalModelRaw = document.getElementById('modelSelect').value;
     const basePrompt = document.getElementById('promptInput').value;
-    const hiddenInstructions = "\n\nमहत्वपूर्ण निर्देश: पूरी स्क्रिप्ट बिल्कुल क्लीन प्लेन टेक्स्ट (Plain Text) में होनी चाहिए। किसी भी तरह के स्टार (**), बुलेट पॉइंट, डॉट या हैश (#) का इस्तेमाल बिल्कुल न करें। इसे सीधा एक न्यूज़ एंकर के पढ़ने के लिए साफ पैराग्राफ फॉर्मेट में दें।";
+    const hiddenInstructions = "\n\nमहत्वपूर्ण निर्देश: पूरी स्क्रिप्ट बिल्कुल क्लीन प्लेन टेक्स्ट (Plain Text) में होनी चाहिए। किसी भी तरह के स्टार (**), बुलेट पॉइंट, डॉट या हैश (#) का इस्तेमाल बिलकुल न करें। इसे सीधा एक न्यूज एंकर के पढ़ने के लिए साफ पैराग्राफ फॉर्मेट में दें।";
     const finalPrompt = basePrompt + hiddenInstructions;
+    
     const btn = document.getElementById('generateBtn');
     const loader = document.getElementById('scriptLoader');
     const output = document.getElementById('scriptOutput');
-    btn.disabled = true; loader.style.display = "block"; output.value = "";
+    
+    btn.disabled = true; 
+    loader.style.display = "block"; 
+    output.value = "";
+
     try {
-        const response = await fetch(`${WORKER_URL}/v1/chat/completions`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ model: finalModel, messages: [{ role: "user", content: finalPrompt }] })
-        });
-        const data = await response.json();
-        if (!response.ok || data.error) throw new Error(data.error?.message || data.error || `API Error (${response.status})`);
-        let cleanScript = data.choices[0].message.content;
-        cleanScript = cleanScript.replace(/\*/g, '').replace(/#/g, '');
-        output.value = cleanScript.trim();
+        // Check if it's a Dahl model
+        if (finalModelRaw.startsWith('dahl::')) {
+            const apiKey = document.getElementById('dahlApiKey').value.trim();
+            if (!apiKey) throw new Error("❌ Dahl API Key missing! Please enter your key above.");
+            
+            const modelName = finalModelRaw.replace('dahl::', '');
+            output.value = "Connecting to Dahl Global API...\nPlease wait.";
+            
+            const response = await fetch("https://inference.dahl.global/v1/chat/completions", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({ 
+                    model: modelName, 
+                    messages: [{ role: "user", content: finalPrompt }] 
+                })
+            });
+            
+            const data = await response.json();
+            if (!response.ok || data.error) throw new Error(data.error?.message || `API Error (${response.status})`);
+            
+            let cleanScript = data.choices[0].message.content;
+            cleanScript = cleanScript.replace(/\*/g, '').replace(/#/g, '');
+            output.value = cleanScript.trim();
+
+        } else {
+            // Standard Worker/xKiro Logic
+            output.value = "Connecting to xKiro/Worker...\nPlease wait.";
+            const response = await fetch(`${WORKER_URL}/v1/chat/completions`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ model: finalModelRaw, messages: [{ role: "user", content: finalPrompt }] })
+            });
+            const data = await response.json();
+            if (!response.ok || data.error) throw new Error(data.error?.message || data.error || `API Error (${response.status})`);
+            
+            let cleanScript = data.choices[0].message.content;
+            cleanScript = cleanScript.replace(/\*/g, '').replace(/#/g, '');
+            output.value = cleanScript.trim();
+        }
+
     } catch (error) {
         output.value = "⚠️ Error: " + error.message;
     } finally {
-        btn.disabled = false; loader.style.display = "none";
+        btn.disabled = false; 
+        loader.style.display = "none";
     }
 }
 
@@ -216,7 +277,6 @@ function buildFinalPrompt(raw) {
 
     if(!concept && !textMain) concept = raw; 
 
-    // Optimized prompt for generic models too
     let p = `Professional YouTube news thumbnail, 16:9 aspect ratio. 
     Scene Description: ${concept}. 
     Main Headline Text Overlay (Correct Hindi Spelling): "${textMain}". 
@@ -292,19 +352,14 @@ function cfGenerate(prompt) {
 /* ================= ENGINE 3: POLLINATIONS (NEW - UNLIMITED) ================= */
 function pollinationsGenerate(prompt) {
     return withTimeout(async () => {
-        // Encode prompt safely for URL
         const encodedPrompt = encodeURIComponent(prompt);
-        // Using flux model via pollinations for better quality than default
         const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&nologo=true&seed=${Math.floor(Math.random()*10000)}`;
         
-        // We need to verify the image loads before returning it
         return new Promise((resolve, reject) => {
             const imgTest = new Image();
             imgTest.onload = () => resolve(imageUrl);
             imgTest.onerror = () => reject(new Error("Pollinations image load failed"));
             imgTest.src = imageUrl;
-            
-            // Timeout check inside promise if needed, but outer timeout handles it
         });
     }, 60000, "Pollinations");
 }
@@ -340,7 +395,6 @@ async function generateThumbnail() {
     try {
         const steps = [];
         
-        // Logic to determine which engines to run based on selection
         if (engineChoice === 'puter-gpt1') {
             steps.push({ label: "🤖 GPT Image 1 (Puter)", fn: async () => { await ensurePuterAuthSync(); return puterGenerate(prompt); }});
             steps.push({ label: "☁️ Cloudflare Backup", fn: () => cfGenerate(prompt) });
@@ -359,7 +413,7 @@ async function generateThumbnail() {
             try {
                 finalUrl = await step.fn();
                 usedEngineLabel = step.label;
-                break; // Success! Stop trying further engines.
+                break; 
             } catch (e) {
                 errors.push(`${step.label}: ${e.message}`);
                 console.warn(e);
