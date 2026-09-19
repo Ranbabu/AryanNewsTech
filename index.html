@@ -52,18 +52,21 @@
 
 <!-- ========== MODULE 1: SCRIPT ========== -->
 <div id="script-module" class="card">
-    <label>AI Model (Select Free Model)</label>
+    <label>AI Model (Select from xKiro List)</label>
+    <!-- UPDATED DROPDOWN WITH REQUESTED MODELS -->
     <select id="modelSelect">
-        <option value="google/gemini-2.5-flash:free" selected>Gemini 2.5 Flash (Free)</option>
-        <option value="qwen/qwen-2.5-72b-instruct:free">Qwen 72B (Best for Hindi)</option>
-        <option value="qwen/qwen3.7-max:free">Qwen 3.7 Max (Free)</option>
+        <option value="qwen/qwen3.5-plus" selected>Qwen 3.5 Plus</option>
+        <option value="qwen/qwen3.5-397b-a17b-instruct">Qwen 3.5 397B Instruct</option>
+        <option value="qwen/qwen3.7-plus">Qwen 3.7 Plus</option>
+        <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+        <option value="minimax/minimax-m3">MiniMax M3</option>
     </select>
 
     <label>OR Enter Custom Model ID (Optional)</label>
-    <input type="text" id="customModel" placeholder="e.g. google/gemini-2.5-flash:free">
+    <input type="text" id="customModel" placeholder="e.g. qwen/qwen3.5-plus">
 
     <label>Topic / Master Prompt</label>
-    <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज़ टेक। आज की टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज़ एंकर के पढ़ने के अंदाज में लिखें।</textarea>
+    <textarea id="promptInput" placeholder="टॉपिक लिखें...">नमस्कार! आप देख रहे हैं आर्यन न्यूज़ टेक। आज कী टॉप 10 खबरें तैयार करें। स्क्रिप्ट को न्यूज़ एंकर के पढ़ने के अंदाज़ में लिखें।</textarea>
 
     <button id="generateBtn" onclick="generateScript()">Generate Script</button>
     <div id="scriptLoader" style="display:none; text-align:center; color:var(--accent); font-size:0.9rem; margin:-10px 0 15px;">Generating... Please wait.</div>
@@ -125,7 +128,7 @@
     <input type="file" id="convFile" accept="image/*" onchange="loadConvFile(this)">
 
     <canvas id="convCanvas" width="1280" height="720"></canvas>
-    <div class="conv-label">1280 × 720 — YouTube Thumbnail | ☝️ उंगली से drag करें (ऊपर/नीचे/बाएँ/दाएँ)</div>
+    <div class="conv-label">1280 × 720 — YouTube Thumbnail | ☝️ उंगली से drag करें (ऊपर/नीचे/बाएं/दाएं)</div>
 
     <div class="btn-group">
         <button class="btn-secondary" onclick="convZoom(-1)">🔍 −</button>
